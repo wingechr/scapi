@@ -1,0 +1,28 @@
+{
+    "$schema": "../schema/api.json",
+    "paths": {
+        "example_module": {
+            "paths": {
+                "example_function": {
+                    "httpMethod": "GET"
+                },
+                "example_function_with_data": {
+                    "httpMethod": "POST"
+                }
+            }
+        },
+        "rest_api": {
+            "paths": {
+                "resource_1": {
+                    "paths": {
+                        "id": {
+                            "isArgument": true,
+                            "httpMethod": "GET"
+                        }
+                    }
+                }
+            }
+        }
+    },
+    "hasAuthentication": true
+}
