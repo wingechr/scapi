@@ -1,6 +1,9 @@
 # coding: utf-8
 import logging
-logging.basicConfig(format="[%(asctime)s %(levelname)7s] %(message)s", level=logging.INFO)
+
+logging.basicConfig(
+    format="[%(asctime)s %(levelname)7s] %(message)s", level=logging.INFO
+)
 
 import unittest
 import sys
@@ -27,8 +30,7 @@ class TestApi(unittest.TestCase):
         pass
 
     def test_validate_metaschema(self):
-        schema = json_load('schema/api.json')
-        instance = json_load('test/api.json')
+        schema = json_load("schema/api.json")
+        instance = json_load("test/api.json")
         res = jsonschema.validate(instance, schema)
         logging.info(res)
-        

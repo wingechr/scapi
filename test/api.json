@@ -1,28 +1,57 @@
 {
     "$schema": "../schema/api.json",
-    "paths": {
-        "example_module": {
-            "paths": {
-                "example_function": {
-                    "httpMethod": "GET"
-                },
-                "example_function_with_data": {
-                    "httpMethod": "POST"
-                }
-            }
-        },
-        "rest_api": {
-            "paths": {
-                "resource_1": {
-                    "paths": {
-                        "id": {
-                            "isArgument": true,
-                            "httpMethod": "GET"
-                        }
+    "children": [
+        {
+            "path": "resource",
+            "children": [
+                {
+                    "method": "get",
+                    "arguments": {
+                        "max": {}
                     }
+                },
+                {
+                    "method": "post",
+                    "hasAuthentication": true
+                },
+                {
+                    "argument": "id",
+                    "method": "get"
+                },
+                {
+                    "argument": "id",
+                    "method": "delete",
+                    "hasAuthentication": true
+                },
+                {
+                    "argument": "id",
+                    "method": "put",
+                    "hasAuthentication": true
+                },
+                {
+                    "argument": "id",
+                    "method": "patch",
+                    "hasAuthentication": true
                 }
-            }
+            ]
+        },
+        {
+            "path": "module",
+            "children": [
+                {
+                    "path": "function",
+                    "method": "get",
+                    "arguments": {
+                        "arg1": {}
+                    }
+                },
+                {
+                    "path": "function_w_data",
+                    "method": "post",
+                    "arguments": {},
+                    "hasAuthentication": true
+                }
+            ]
         }
-    },
-    "hasAuthentication": true
+    ]
 }
