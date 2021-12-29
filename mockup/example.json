@@ -1,0 +1,217 @@
+{
+    "$schema": "../schema/api.json",
+    "endpoints": [
+        {
+            "path": [
+                "module",
+                "submodule",
+                "get"
+            ],
+            "callable": {
+                "imports": [
+                    "package",
+                    "module"
+                ],
+                "attributes": [
+                    "get"
+                ]                
+            },
+            "arguments": [
+                {
+                    "name": "arg1"
+                },
+                {
+                    "name": "arg2"
+                }
+            ],
+            "output": true
+        },
+        {
+            "path": [
+                "module",
+                "submodule",
+                "post"
+            ],
+            "callable": {
+                "imports": [
+                    "package",
+                    "submodule",
+                    "module"
+                ],
+                "attributes": [
+                    "post"
+                ]
+            },
+            "arguments": [
+                {
+                    "name": "data"
+                },
+                {
+                    "name": "arg3",
+                    "description": "blabla text arg3"
+                },
+                {
+                    "name": "arg4"
+                }
+            ],
+            "inputDataArgument": "data",
+            "output": true
+        },
+        {
+            "path": [
+                "rest",
+                "resource",
+                "list"
+            ],
+            "callable": {
+                "imports": [
+                    "package",
+                    "rest"
+                ],
+                "attributes": [
+                    "Resources",
+                    "Resource",
+                    "list"
+                ]
+            },
+            "arguments": [],
+            "httpMethod": "GET",
+            "output": true
+        },
+        {
+            "path": [
+                "rest",
+                "resource",
+                "post"
+            ],
+            "callable": {
+                "imports": [
+                    "package",
+                    "rest"
+                ],
+                "attributes": [
+                    "Resources",
+                    "Resource",
+                    "post"
+                ]
+            },
+            "arguments": [
+                {
+                    "name": "data"
+                }
+            ],
+            "inputDataArgument": "data",
+            "httpMethod": "POST",
+            "output": true
+        },
+        {
+            "path": [
+                "rest",
+                "resource",
+                "get"
+            ],
+            "callable": {
+                "imports": [
+                    "package",
+                    "rest"
+                ],
+                "attributes": [
+                    "Resources",
+                    "Resource",
+                    "get"
+                ]
+            },
+            "arguments": [
+                {
+                    "name": "id"
+                }
+            ],
+            "urlArgument": "id",
+            "httpMethod": "GET",
+            "output": true
+        },
+        {
+            "path": [
+                "rest",
+                "resource",
+                "delete"
+            ],
+            "callable": {
+                "imports": [
+                    "package",
+                    "rest"
+                ],
+                "attributes": [
+                    "Resources",
+                    "Resource",
+                    "delete"
+                ]
+            },
+            "arguments": [
+                {
+                    "name": "id"
+                }
+            ],
+            "urlArgument": "id",
+            "httpMethod": "DELETE"
+        },
+        {
+            "path": [
+                "rest",
+                "resource",
+                "put"
+            ],
+            "callable": {
+                "imports": [
+                    "package",
+                    "rest"
+                ],
+                "attributes": [
+                    "Resources",
+                    "Resource",
+                    "put"
+                ]
+            },
+            "arguments": [
+                {
+                    "name": "data"
+                },
+                {
+                    "name": "id"
+                }
+            ],
+            "inputDataArgument": "data",
+            "urlArgument": "id",
+            "httpMethod": "PUT"
+        },
+        {
+            "path": [
+                "rest",
+                "resource",
+                "patch"
+            ],
+            "callable": {
+                "imports": [
+                    "package",
+                    "rest"
+                ],
+                "attributes": [
+                    "Resources",
+                    "Resource",
+                    "patch"
+                ]
+            },
+            "arguments": [
+                {
+                    "name": "data"
+                },
+                {
+                    "name": "id"
+                }
+            ],
+            "inputDataArgument": "data",
+            "urlArgument": "id",
+            "httpMethod": "PATCH"
+        }
+    ]
+}
