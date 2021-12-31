@@ -38,6 +38,16 @@ The build tool:
   in layer 2 and in (binary) stdin and stdout in layer 4.
   in these transitions, a method to decode / encode the data from and to binary must be specified
 
+* the server layer must:
+  * first match the http data (method, path, and expected query args) to an api endpoint
+    of matching signature
+  * if endpoint has input:
+    read and convert body content
+  * convert query args:
+    call the enpoint
+  * if output:  convert result
+  * prepare response
+  * send output or []
 
 ## Exmaple structure (WIP)
 

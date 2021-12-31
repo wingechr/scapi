@@ -37,8 +37,7 @@
                 "additionalProperties": false,
                 "required": [
                     "path",
-                    "callable",
-                    "arguments"
+                    "callable"
                 ],
                 "properties": {
                     "path": {
@@ -70,6 +69,28 @@
                             }
                         }
                     },
+                    "options": {
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                                "name"
+                            ],
+                            "properties": {
+                                "name": {
+                                    "$ref": "#/definitions/identifier"
+                                },
+                                "description": {
+                                    "type": "string"
+                                },
+                                "default": {},
+                                "nameOrigin": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
                     "arguments": {
                         "type": "array",
                         "items": {
@@ -84,6 +105,9 @@
                                 },
                                 "description": {
                                     "type": "string"
+                                },
+                                "nameOrigin": {
+                                    "type": "string"
                                 }
                             }
                         }
@@ -91,17 +115,18 @@
                     "httpMethod": {
                         "$ref": "#/definitions/httpMethods"
                     },
-                    "inputDataArgument": {
-                        "name": {
-                            "$ref": "#/definitions/identifier"
+                    "input": {
+                        "type": "object",
+                        "nameOrigin": {
+                            "type": "string"
                         }
                     },
-                    "urlArgument": {
-                        "name": {
-                            "$ref": "#/definitions/identifier"
-                        }
+                    "output": {
+                        "type": "object"
                     },
-                    "output": {}
+                    "description": {
+                        "type": "string"
+                    }
                 }
             }
         }

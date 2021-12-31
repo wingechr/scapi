@@ -2,101 +2,175 @@
 
 import logging
 import os
-
-import click
-import coloredlogs
-import jsonschema
-
+import re
+import shutil
 from collections import OrderedDict
 
-from utils import json_load, text_load, text_dump
+import click
+import jsonschema
 
 
-# https://coloredlogs.readthedocs.io/en/latest/api.html#changing-the-date-time-format
-coloredlogs.DEFAULT_LOG_FORMAT = "[%(asctime)s %(levelname)7s] %(message)s"
-coloredlogs.DEFAULT_DATE_FORMAT = "%Y-%m-%d %H:%M:%S"
-coloredlogs.DEFAULT_FIELD_STYLES = {
-    "asctime": {"color": "black", "bold": True},  # gray
-    "levelname": {"color": "black", "bold": True},  # gray
-}
-coloredlogs.DEFAULT_LEVEL_STYLES = {
-    "debug": {"color": "black", "bold": True},  # gray
-    "info": {"color": "white"},
-    "warning": {"color": "yellow"},
-    "error": {"color": "red", "bold": 10},
-}
+from utils import json_load, text_dump
 
+class ApiParameter:
+    """superclass for arguments/options/input"""
 
-def load_template(name, context=None):
-    template_path = os.path.dirname(__file__) + '/templates'
-    file_path = template_path + '/' + name + '.py'
-    data = text_load(file_path)
-    for k, v in (context or {}).items():
-        data = data.replace("'''{{" + k + "}}'''", v)
-    return data
-
-def save_script(data, output_path, name):
-    file_path = output_path + '/' + name + '.py'
-    text_dump(data, file_path)
-
-
-class Argument:
-    def __init__(self, name, description=None):
+    def __init__(self, name, description=None, default=None, nameOrigin=None):
         self.name = name
-        self.isInputData = False
-        self.isUrl = False
-        self.description = description
+        self.description = description or ''
+        self.default = default
+        self.nameOrigin = nameOrigin or self.name
+        
+    @property
+    def function_def(self):
+        result = self.name
+        if self.annotation:
+            result += ": " + self.annotation
+        if self.default:
+            result += "=" + str(self.default)
+        return result
+    
+    @property
+    def docstring(self):        
+        line = self.name        
+        if self.annotation:
+            line += "(" + self.annotation + ')'
+        line += ": " + self.description
+        result = IndentedCodeBlock(
+            line
+        )        
+        if self.default is not None:
+            result += "default: " + self.default
+        return result
+
+    @property
+    def annotation(self):
+        return None
+    
+
+class Argument(ApiParameter):
+    """position argument / url part"""
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+    
+    @property
+    def str_pattern(self):
+        """return str pattern for url"""
+        # TODO: this is only the default
+        return "[^/?]+"
+        
+class Option(ApiParameter):
+    """named argument / query"""
+    def __init__(self, **kwargs):
+        kwargs["default"] = str(kwargs.get("default"))
+        super().__init__(**kwargs)
+    
+    @property
+    def annotation(self):
+        return "str"
+
+class Data:
+    """Superclass for data input/output"""
+    pass
+
+class Input(ApiParameter, Data):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+
+class Output(Data):
+    @property
+    def annotation(self):
+        return "str"
+    
+    @property
+    def docstring(self):
+        return self.annotation + ": TODO output description"
 
 class Callable:
-    _imports = set()
-
+    """Callable in underlying base code"""
     def __init__(self, imports, attributes):
         self.imports = imports
         self.attributes = attributes
-        self._imports.add(".".join(self.imports))
+        
+    @property
+    def str_call(self):
+        return '.'.join(self.imports + self.attributes)
 
-    @classmethod
-    def get_imports(cls):
-        return sorted(cls._imports)
-
-
-def add_into_tree(tree, path, element):
-    path, name = path[:-1], path[-1]
-    for p in path:
-        if p not in tree:
-            tree[p] = {}
-        tree = tree[p]
-        if not isinstance(tree, dict):
-            raise Exception(path)
-    assert name not in tree
-    tree[name] = element    
+ 
+def append_commas(iterable):
+    iterable = list(iterable)
+    for i in range(len(iterable) - 1):
+        iterable[i] += ','
+    return iterable
 
 class Endpoint:
-    
+    """api endpoint (callable/url/click command"""
+
     tree_api = {}
-    
-    def __init__(self, path, callable, arguments, httpMethod=None, inputDataArgument=None, urlArgument=None, output=None):
-        self.callable = Callable(**callable)
-        self.arguments = OrderedDict((a["name"], Argument(**a)) for a in arguments)
-        self.inputDataArgument = self.arguments[inputDataArgument] if inputDataArgument else None
-        self.urlArgument = self.arguments[urlArgument] if urlArgument else None
-        if inputDataArgument:        
-            self.arguments[inputDataArgument].isInputData = True
-        if urlArgument:        
-            self.arguments[urlArgument].isUrl = True
-        self.httpMethod = self.determineHttpMethod(httpMethod, inputDataArgument)        
-        self.path_url = path[:-1] if httpMethod else path
-        self.path_api = path
-        self.output = output
+    tree_url = {}
+    endpoints = []
 
-        add_into_tree(self.tree_api, self.path_api, self)        
-
+    @staticmethod
+    def get_imports(endpoints):
+        imports = set()
+        for ep in endpoints:
+            imports.add(tuple(ep.callable.imports))
+        return [".".join(x) for x in sorted(imports)]
     
     @staticmethod
-    def determineHttpMethod(httpMethod, inputDataArgument):
+    def get_all_imports():
+        return Endpoint.get_imports(Endpoint.endpoints)
+    
+    def __init__(self, path, callable, arguments=None, options=None, input=None, output=None, httpMethod=None, description=None):
+        
+        
+        self.callable = Callable(**callable)
+        self.arguments = OrderedDict((a["name"], Argument(**a)) for a in arguments or [])
+        self.options = OrderedDict((o["name"], Option(**o)) for o in options or [])
+        self.input = Input(**input) if input is not None else None
+        self.output = Output(**output) if output is not None else None
+        self.httpMethod = self.determineHttpMethod(httpMethod, input)
+        self.description = description or ""
+        self.api_fun_name = path[-1]
+        
+        self.path_api = path
+        self.path_url = self.get_url_path(httpMethod)
+        print(self.path_url)
+        
+        self.add_into_tree(self.tree_api, self.path_api)
+        self.add_into_tree(self.tree_url, self.path_url)
+        self.endpoints.append(self)
+    
+    def get_url_path(self, httpMethod):
+        result = self.path_api.copy()
+        # if httpMethod is explicitly stated, the last part of the path will be dropped in the url
+        if httpMethod:
+            result.pop()
+        # add pattern from arguments
+        for name, arg in self.arguments.items():
+            result.append('^(?<' + name + '>' + arg.str_pattern + ')$')
+        
+        # add httpMethod (implicitly determined) to path, prefixed by "/"
+        result.append("/" + self.httpMethod)        
+        return result
+    
+    def add_into_tree(self, tree, path):
+        path, name = path[:-1], path[-1]
+        for p in path:
+            if p not in tree:
+                tree[p] = {}
+            tree = tree[p]
+        if name in tree:
+            raise Exception(path)
+        tree[name] = self
+    
+
+
+    @staticmethod
+    def determineHttpMethod(httpMethod, input):
         if httpMethod:
             return httpMethod
-        elif inputDataArgument:
+        elif input:
             return 'POST'
         else:
             return 'GET'
@@ -129,171 +203,245 @@ class Endpoint:
         pat += '$'
         return pat
 
+    
+    @property
+    def api_parameters(self):
+        params = []
+        params += list(self.arguments.values())
+        if self.input:
+            params += [self.input]
+        params += list(self.options.values())
+        return params
+
+    
+        
+    @property
+    def docstring(self):
+        result = CodeBlock(
+            '"""' + self.description,
+            None            
+        )        
+        if self.api_parameters:            
+            result += IndentedCodeBlock(
+                "Args:",
+                [p.docstring for p in self.api_parameters]
+            )
+        
+        if self.output:
+             result += IndentedCodeBlock(
+                "Returns:",
+                self.output.docstring
+            )
+
+        result += ['"""']
+        return result
+    
+    @property
+    def api_function(self):
+        fun_annotation = self.output.annotation if self.output else "None"
+        fun_args = ", ".join(a.function_def for a in self.api_parameters)
+
+        result = IndentedCodeBlock(
+            CodeBlock(
+                "@staticmethod",
+                "def " + self.api_fun_name + "(" + fun_args + ") -> " + fun_annotation + ":"
+            ),
+            self.docstring
+        )
+        
+        call_args = append_commas("%s=utils.validate(%s, %s)" % (p.nameOrigin, p.name, p.annotation) for p in self.api_parameters)
+        call = IndentedCodeBlock(self.callable.str_call + "(", *call_args, footer='),')
+
+        if self.output:
+            result += IndentedCodeBlock('return utils.validate(', call, self.output.annotation, footer=')')            
+        else:
+            result += call
+
+
+        return result
+
+    @classmethod
+    def get_api_code(cls, node=None, class_name=None):
+        node = node or cls.tree_api
+        if isinstance(node, dict):
+            items = [cls.get_api_code(child, name) for name, child in node.items()]
+            if class_name:
+                return IndentedCodeBlock(
+                    "class " + class_name + ':',
+                    *items
+                )
+            else:
+                return CodeBlock(*items)
+        else:
+            return CodeBlock(node.api_function)
+    
+    @classmethod
+    def get_server_router(cls, node=None, class_name=None):
+        node = node or cls.tree_url
+        if isinstance(node, dict):
+            items = [cls.get_server_router(child, name) for name, child in node.items()]
+            if class_name:
+                return IndentedCodeBlock(
+                    '"' + class_name + '": {',
+                    *append_commas(items),
+                    footer="}"
+                )
+            else:
+                return CodeBlock(*items)
+        else:
+            return CodeBlock(node)
+
+class CodeBlock():
+    """lines of code in same indentation"""
+    def __init__(self, *parts):
+        self.parts = []
+        if parts:
+            self += parts
+    
+    def __add__(self, it):
+        if it is None:
+            self.parts.append(None)
+        elif isinstance(it, (list, tuple)):
+            for i in it:
+                self += i
+        elif isinstance(it, CodeBlock):
+            self.parts.append(it)
+        else:
+            for line in str(it).splitlines(keepends=False):
+                self.parts.append(line.strip())
+        return self
+
+    def get_indented_lines(self, level):
+        for p in self.parts:
+            if not p:
+                yield ""
+            elif isinstance(p, str):
+                yield self.indent(level) + p
+            else: # Codeblock
+                yield from p.get_indented_lines(level)
+    
+    def __str__(self):
+        return '\n'.join(self.get_indented_lines(0))
+    
+    @staticmethod
+    def indent(level):
+        return " " * 4 * level
+
+class IndentedCodeBlock(CodeBlock):
+    def __init__(self, header, *parts, footer=None):
+        self.header = CodeBlock(header)
+        self.footer = CodeBlock(footer)
+        super().__init__(*parts)
+    
+    def get_indented_lines(self, level):
+        yield from self.header.get_indented_lines(level)
+        yield from super().get_indented_lines(level + 1)
+        yield from self.footer.get_indented_lines(level)
+        
+class Script(CodeBlock):
+    name = None    
+
+    def __init__(self, *parts):
+        super().__init__(
+            'from . import utils',
+            'import logging',
+            *parts
+        )
+
+    def save(self, output_path):
+        text_dump(str(self), output_path + '/' + self.name + '.py')
+
+
+class Script_1_Api(Script):
+    name = "api"
+
+    def __init__(self):        
+        super().__init__(                        
+            "import sys",
+            None,
+            IndentedCodeBlock(
+                "def Api(python_paths=None):",                
+                "sys.path += (python_paths or [])",                
+                *["import " + i for i in Endpoint.get_all_imports()],
+                IndentedCodeBlock(
+                    "class Api:",
+                    Endpoint.get_api_code()
+                ),
+                "return Api"                               
+            )
+        )        
+
+class Script_2_Server(Script):
+    name = "server"
+
+    def __init__(self):
+        super().__init__(
+            "import os",
+            None,        
+            IndentedCodeBlock(
+                "def router():",
+                IndentedCodeBlock(
+                    "return {",
+                    Endpoint.get_server_router(),
+                    footer="}"
+                ),
+            ),
+            'application = utils.create_wsgi_application(router)',
+            None,
+            IndentedCodeBlock(
+                'if __name__ == "__main__":',
+                'port = int(os.environ.get("SERVER_PORT", "8000"))',
+                'utils.start_wsgi_server(application, port=port)'                
+            )
+        )
+
+class Script_3_Client(Script):
+    name = "cli"
+
+    def __init__(self):
+        super().__init__()
+
+class Script_4_Cli(Script):
+    name = "cli"
+
+    def __init__(self):
+        super().__init__()
+    
+
+
 
 @click.command()
-@click.pass_context
-# @click.version_option(__version__)
-@click.option(
-    "--loglevel",
-    "-l",
-    type=click.Choice(["debug", "info", "warning", "error"]),
-    default="info",
-)
 @click.argument("schema_json", type=click.Path(exists=True))
 @click.argument("output_path", type=click.Path(exists=False))
-def main(ctx, loglevel, schema_json, output_path):
-    """Script entry point."""
-    if isinstance(loglevel, str):  # e.g. 'debug'/'DEBUG' -> logging.DEBUG
-        loglevel = getattr(logging, loglevel.upper())
-    coloredlogs.install(level=loglevel)
-    ctx.ensure_object(dict)
+def main(schema_json, output_path):
+    
+    SRC_DIR = os.path.dirname(__file__)
 
     # load and validate schema
     schema = json_load(schema_json)
-    metaschema = json_load("G:/scapi/schema/api.json")
+    metaschema = json_load(SRC_DIR + "/schema/api.json")
     jsonschema.validate(schema, metaschema)
-    
 
+    # create output directory
     if not os.path.isdir(output_path):
         os.makedirs(output_path)
 
+    # copy schema + files from shared
+    for name in os.listdir(SRC_DIR + '/shared'):
+        if not name.endswith('.py'):
+            continue
+        shutil.copy(SRC_DIR + '/shared/' + name, output_path + '/' + name)
+    shutil.copy(schema_json, output_path + '/schema.json')
+    
     # create endpoints
-    endpoints = [Endpoint(**ep) for ep in schema["endpoints"]]
+    _endpoints = [Endpoint(**ep) for ep in schema["endpoints"]]
     
-    def recursive_lines(dct, indent=1, level=0, get_items=None, format_key=None, format_val=None, header="{", footer="}"):
-        if not level:
-            yield (0, header)
-        
-        format_key = format_key or (lambda x: '"%s": ' % str(x))
-        format_val = format_val or (lambda x: x)
-        get_items = get_items or (lambda x: x.items())
-        
-        items = sorted(list(get_items(dct)), key=lambda it: it[0])
-        for idx, (key, val) in enumerate(items):
-            comma = "" if idx + 1 == len(items) else ","
-            if isinstance(val, dict):
-                yield (indent + 1, '%s%s' % (format_key(key), header))
-                yield from recursive_lines(
-                    val, 
-                    indent=indent + 1,
-                    level=level+1,
-                    get_items=get_items,
-                    format_key=format_key,
-                    format_val=format_val,
-                    header=header,
-                    footer=footer
-                )
-                yield (indent + 1, "%s%s" % (footer, comma))        
-            else:
-                yield (indent + 1, '%s%s%s' % (format_key(key), format_val(val), comma))
+    # generate code for layers
+    Script_1_Api().save(output_path)
+    Script_2_Server().save(output_path)
+    Script_3_Client().save(output_path)
+    Script_4_Cli().save(output_path)
 
-        if not level:
-            yield (indent, footer)
-            
-    def create_api_namespaces(tree):
-        yield from recursive_lines(
-            tree, 
-            header="SimpleNamespace(", footer=")", 
-            format_key=lambda x: "%s=" % x, 
-            format_val=lambda x: "validate(%s)" % x.str_callable,
-            indent=1
-        )
-
-    def client_namespaces_namespaces(tree):
-        yield from recursive_lines(
-            tree, 
-            header="SimpleNamespace(", footer=")", 
-            format_key=lambda x: "%s=" % x, 
-            format_val=lambda x: 'request("%s", "%s")' % (x.httpMethod, x.str_url),
-            indent=1
-        )
     
-
-    def create_url(endpoints):
-        result = {}
-        for ep in endpoints:
-            assert ep.pattern_url not in result
-            result[ep.pattern_url] = "serve(%s)" % ep.str_api
-                
-        yield from recursive_lines(result, indent=1)
-        
-            
-
-
-    def join_line_indent(lines):
-        return '\n'.join(" " * (i*4) + l for i, l in lines)
-
-    context = {}
-
-    context["imports"] = '\n    '.join("import " + imp for imp in Callable.get_imports())
-    context["api_namespaces"] = join_line_indent(create_api_namespaces(Endpoint.tree_api))
-    script_api = load_template("api", context)    
-    save_script(script_api, output_path, "api")
-
-    context["handlers"] = join_line_indent(create_url(endpoints))
-    script_server = load_template("server", context)
-    save_script(script_server, output_path, "server")
-
-    context["client_namespaces"] = join_line_indent(client_namespaces_namespaces(Endpoint.tree_api))
-    script_client = load_template("client", context)
-    save_script(script_client, output_path, "client")
-   
-
-    def rec_tree(node, level=0, group_name="main"):
-        for k, v in node.items():                
-            func_name = group_name + '_' + k            
-            if isinstance(v, dict):                
-                # create group
-                
-                yield(0, '@%s.group("%s")' % (group_name, k))
-                yield(0, "@click.pass_context")
-                yield(0, "def %s(ctx):" % func_name)
-                yield(1, 'ctx.obj["api"] = getattr(ctx.obj["api"], "%s")' % k)
-                yield(0, "")
-                yield(0, "")
-
-                yield from rec_tree(v, level=level+1, group_name=func_name)
-            else:
-                # create function
-
-                yield(0, '@%s.command("%s")' % (group_name, k))
-                yield(0, "@click.pass_context")
-
-                args = []
-                if v.urlArgument:
-                    arg = v.urlArgument
-                    yield(0, '@click.argument("%s")' % (arg.name))                                                            
-                    args.append(arg.name)
-                
-                for arg in v.arguments.values():
-                    if not (arg.isUrl or arg.isInputData):
-                        yield(0, '@click.option("--%s", help="%s")' % (arg.name, arg.description))                                        
-                        args.append(arg.name)                
-
-                yield(0, "def %s(%s):" % (func_name, ",".join(["ctx"] + args)))
-                yield(1, 'ctx.obj["api"] = getattr(ctx.obj["api"], "%s")' % k)
-                
-                if v.inputDataArgument:
-                    args.insert(0, v.inputDataArgument.name)
-                    yield(1, '%s = ctx.obj["stdin"].read()' % (v.inputDataArgument.name))
-                if v.output:
-                    yield(1, 'result = ctx.obj["api"](%s)' % ", ".join("%s=%s" % (x, x) for x in args))
-                    yield(1, 'ctx.obj["stdout"].write(str(result).encode())')
-                else:
-                    yield(1, 'ctx.obj["api"](%s)' % ", ".join("%s=%s" % (x, x) for x in args))
-                yield(0, "")
-                yield(0, "")
-    
-    context["click_functions"] = join_line_indent(rec_tree(Endpoint.tree_api))
-    script_cli = load_template("cli", context)
-    save_script(script_cli, output_path, "cli")
-
-    # todo env
-    save_script("""
-import sys
-sys.path.append('G:/scapi/mockup/0_code')
-    """, output_path, "__init__")
-
-
 if __name__ == "__main__":
     main(prog_name="python3 build.py")
