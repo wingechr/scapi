@@ -135,7 +135,6 @@ class Endpoint:
         
         self.path_api = path
         self.path_url = self.get_url_path(httpMethod)
-        print(self.path_url)
         
         self.add_into_tree(self.tree_api, self.path_api)
         self.add_into_tree(self.tree_url, self.path_url)
@@ -250,11 +249,13 @@ class Endpoint:
         )
         
         call_args = append_commas("%s=utils.validate(%s, %s)" % (p.nameOrigin, p.name, p.annotation) for p in self.api_parameters)
-        call = IndentedCodeBlock(self.callable.str_call + "(", *call_args, footer='),')
+        
 
         if self.output:
+            call = IndentedCodeBlock(self.callable.str_call + "(", *call_args, footer='),')
             result += IndentedCodeBlock('return utils.validate(', call, self.output.annotation, footer=')')            
         else:
+            call = IndentedCodeBlock(self.callable.str_call + "(", *call_args, footer=')')
             result += call
 
 
@@ -337,7 +338,7 @@ class IndentedCodeBlock(CodeBlock):
         yield from self.header.get_indented_lines(level)
         yield from super().get_indented_lines(level + 1)
         yield from self.footer.get_indented_lines(level)
-        
+
 class Script(CodeBlock):
     name = None    
 
@@ -363,6 +364,8 @@ class Script_1_Api(Script):
                 "def Api(python_paths=None):",                
                 "sys.path += (python_paths or [])",                
                 *["import " + i for i in Endpoint.get_all_imports()],
+                None,
+                None,
                 IndentedCodeBlock(
                     "class Api:",
                     Endpoint.get_api_code()
@@ -415,7 +418,7 @@ class Script_4_Cli(Script):
 @click.argument("output_path", type=click.Path(exists=False))
 def main(schema_json, output_path):
     
-    SRC_DIR = os.path.dirname(__file__)
+    SRC_DIR = os.path.abspath(os.path.dirname(__file__))
 
     # load and validate schema
     schema = json_load(schema_json)

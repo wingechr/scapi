@@ -7,6 +7,8 @@ def Api(python_paths=None):
     import package.module
     import package.rest
     import package.submodule.module
+
+
     class Api:
         @staticmethod
         def get(arg1: str=None, arg2: str=None) -> str:
@@ -100,11 +102,11 @@ def Api(python_paths=None):
                     )
 
                 @staticmethod
-                def get(id) -> str:
+                def get(pk) -> str:
                     """
 
                     Args:
-                        id:
+                        pk:
 
 
                     Returns:
@@ -113,55 +115,55 @@ def Api(python_paths=None):
                     """
                     return utils.validate(
                         package.rest.Resources.Resource.get(
-                            id=utils.validate(id, None)
+                            pk=utils.validate(pk, None)
                         ),
                         str
                     )
 
                 @staticmethod
-                def delete(id) -> None:
+                def delete(pk) -> None:
                     """
 
                     Args:
-                        id:
+                        pk:
 
 
                     """
                     package.rest.Resources.Resource.delete(
-                        id=utils.validate(id, None)
-                    ),
+                        pk=utils.validate(pk, None)
+                    )
 
                 @staticmethod
-                def put(id, data) -> None:
+                def put(pk, data) -> None:
                     """
 
                     Args:
-                        id:
+                        pk:
 
                         data:
 
 
                     """
                     package.rest.Resources.Resource.put(
-                        id=utils.validate(id, None),
+                        pk=utils.validate(pk, None),
                         data=utils.validate(data, None)
-                    ),
+                    )
 
                 @staticmethod
-                def patch(id, data) -> None:
+                def patch(pk, data) -> None:
                     """
 
                     Args:
-                        id:
+                        pk:
 
                         data:
 
 
                     """
                     package.rest.Resources.Resource.patch(
-                        id=utils.validate(id, None),
+                        pk=utils.validate(pk, None),
                         data=utils.validate(data, None)
-                    ),
+                    )
 
 
 

@@ -41,11 +41,9 @@ The build tool:
 * the server layer must:
   * first match the http data (method, path, and expected query args) to an api endpoint
     of matching signature
-  * if endpoint has input:
-    read and convert body content
-  * convert query args:
-    call the enpoint
-  * if output:  convert result
+  * if endpoint has input: read and convert body content
+  * convert query args: call the enpoint
+  * if output: convert result
   * prepare response
   * send output or []
 
@@ -110,13 +108,29 @@ from . import utils
 from .api import Api
 
 
-def router(method, path, ...):    
+def router(method, path, ...):
     api = Api()
+
+    api.example_resource.get()
+
+
     # TODO: don't actually use if/elifs in code
     if (method, path) == ("POST", "/example_function"):
         return api.example_function
     elif (method, path) == ("GET", "/resource"):
         return api.example_resource.get
+
+    # PATH + url + query -> api::callable
+
+    def handle(callable, output_encode=None):
+        result = callable(**argugments)
+        if output_encode:
+            result = output_encode(result)
+        else:
+            result = b''
+
+
+
 
     return callable
 
