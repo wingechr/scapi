@@ -17,8 +17,9 @@ def json_serialize(x):
 
 
 def text_dump(data, filepath):
+    data_s = str(data)
     with open(filepath, "w", encoding="utf-8") as file:
-        file.write(data)
+        file.write(data_s)
 
 
 def text_load(filepath):
@@ -69,35 +70,3 @@ class Importer:
         return result
 
 
-def get_byte_iterator(chunk_size=16777216):
-    class ByteIterator:
-        
-        def __init__(self, data_stream, content_size=None):
-            self.data_stream = data_stream
-            self.read_bytes = None
-            self.chunk_size = chunk_size            
-            self.content_size = content_size
-
-        def __enter__(self):
-            self.data_stream.__enter__()
-            self.read_bytes = 0
-            return self
-
-        def __exit__(self, *args):
-            self.data_stream.__exit__(*args)            
-
-        def __iter__(self):
-            return self
-
-        def __next__(self):
-            if self.content_size:
-                chunk_size = min(self.content_size - self.read_bytes, self.chunk_size)
-            else:
-                chunk_size = self.chunk_size
-            chunk = self.read(chunk_size)
-            if not chunk:
-                raise StopIteration()
-            self.read_bytes += len(chunk)
-            return chunk
-        
-    return ByteIterator

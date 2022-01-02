@@ -1,14 +1,14 @@
 # Purpose
 
 The purpose of this tool is to create a unified set of api layers
-around an existing set of python callables from a json descriptor.
+around an existing set of python sources from a json descriptor.
 
 The json descriptor can be validated from a provided json schema file.
 
 The api layers are:
 
 * 1: **api**:
-    wrapper functions around exising callables that validate inputs and output and 
+    wrapper functions around exising sources that validate inputs and output and 
     clean documentation
 
 * 2: **server**:
@@ -120,10 +120,10 @@ def router(method, path, ...):
     elif (method, path) == ("GET", "/resource"):
         return api.example_resource.get
 
-    # PATH + url + query -> api::callable
+    # PATH + url + query -> api::source
 
-    def handle(callable, output_encode=None):
-        result = callable(**argugments)
+    def handle(source, output_encode=None):
+        result = source(**argugments)
         if output_encode:
             result = output_encode(result)
         else:
@@ -132,7 +132,7 @@ def router(method, path, ...):
 
 
 
-    return callable
+    return source
 
 # wsgi entry
 application = utils.create_wsgi_application(router)

@@ -5,11 +5,12 @@
             "type": "string",
             "pattern": "^[a-z][a-z0-9_]*$"
         },
+        "type": {"type": "string", "enum": ["string", "number", "integer", "boolean", "array"]},
         "identifierCaseInsensitive": {
             "type": "string",
             "pattern": "^[a-zA-Z][a-zA-Z0-9_]*$"
         },
-        "httpMethods": {
+        "https": {
             "type": "string",
             "enum": [
                 "GET",
@@ -37,7 +38,7 @@
                 "additionalProperties": false,
                 "required": [
                     "path",
-                    "callable"
+                    "source"
                 ],
                 "properties": {
                     "path": {
@@ -47,12 +48,12 @@
                         },
                         "minItems": 1
                     },
-                    "callable": {
+                    "source": {
                         "type": "object",
                         "additionalProperties": false,
                         "required": [
                             "imports",
-                            "attributes"
+                            "path"
                         ],
                         "properties": {
                             "imports": {
@@ -61,7 +62,7 @@
                                     "$ref": "#/definitions/identifier"
                                 }
                             },
-                            "attributes": {
+                            "path": {
                                 "type": "array",
                                 "items": {
                                     "$ref": "#/definitions/identifierCaseInsensitive"
@@ -75,7 +76,8 @@
                             "type": "object",
                             "additionalProperties": false,
                             "required": [
-                                "name"
+                                "name",
+                                "type"
                             ],
                             "properties": {
                                 "name": {
@@ -85,9 +87,11 @@
                                     "type": "string"
                                 },
                                 "default": {},
-                                "nameOrigin": {
+                                "source": {
                                     "type": "string"
-                                }
+                                },
+                                "type": {"$ref": "#/definitions/type"},
+                                "flag": {"type": "string"}
                             }
                         }
                     },
@@ -97,7 +101,7 @@
                             "type": "object",
                             "additionalProperties": false,
                             "required": [
-                                "name"
+                                "name", "type"
                             ],
                             "properties": {
                                 "name": {
@@ -106,23 +110,47 @@
                                 "description": {
                                     "type": "string"
                                 },
-                                "nameOrigin": {
+                                "source": {
                                     "type": "string"
-                                }
+                                },
+                                "type": {"$ref": "#/definitions/type"}
                             }
                         }
                     },
-                    "httpMethod": {
-                        "$ref": "#/definitions/httpMethods"
+                    "http": {
+                        "$ref": "#/definitions/https"
                     },
                     "input": {
                         "type": "object",
-                        "nameOrigin": {
-                            "type": "string"
+                        "additionalProperties": false,
+                        "required": [
+                            "name", "type"
+                        ],
+                        "properties": {
+                            "name": {
+                                "$ref": "#/definitions/identifier"
+                            },
+                            "description": {
+                                "type": "string"
+                            },
+                            "source": {
+                                "type": "string"
+                            },
+                            "type": {"$ref": "#/definitions/type"}
                         }
                     },
                     "output": {
-                        "type": "object"
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                            "type"
+                        ],
+                        "properties": {
+                            "description": {
+                                "type": "string"
+                            },                            
+                            "type": {"$ref": "#/definitions/type"}
+                        }
                     },
                     "description": {
                         "type": "string"

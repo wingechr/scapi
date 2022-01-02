@@ -1,6 +1,3 @@
-import package.module
-import package.rest
-import package.submodule.module
 
 class api:
     
@@ -13,11 +10,11 @@ class api:
         Returns:
             str
         """
-        return Type.validate(
-            package.module.get(
-                arg1=Type.validate(arg1),
-                arg2=Type.validate(arg2)
-            )
+        request(
+            "GET",
+            "get",
+            params={"arg1": arg1, "arg2": arg2},
+            data=None
         )
     
     class module:
@@ -33,12 +30,11 @@ class api:
                 Returns:
                     bool
                 """
-                return Type.validate(
-                    package.submodule.module.post(
-                        data_orig=Type.validate(data),
-                        arg3=Type.validate(arg3),
-                        arg4_orig=Type.validate(arg4)
-                    )
+                request(
+                    "POST",
+                    "module/submodule/post",
+                    params={"arg3": arg3, "arg4": arg4},
+                    data=encode(data)
                 )
     
     class rest:
@@ -50,9 +46,11 @@ class api:
                 Returns:
                     int
                 """
-                return Type.validate(
-                    package.rest.Resources.Resource.list(
-                    )
+                request(
+                    "GET",
+                    "rest/resource",
+                    params={},
+                    data=None
                 )
             
             def post(data: int) -> int:
@@ -62,10 +60,11 @@ class api:
                 Returns:
                     int
                 """
-                return Type.validate(
-                    package.rest.Resources.Resource.post(
-                        data=Type.validate(data)
-                    )
+                request(
+                    "POST",
+                    "rest/resource",
+                    params={},
+                    data=encode(data)
                 )
             
             def get(pk: int) -> int:
@@ -75,10 +74,11 @@ class api:
                 Returns:
                     int
                 """
-                return Type.validate(
-                    package.rest.Resources.Resource.get(
-                        pk=Type.validate(pk)
-                    )
+                request(
+                    "GET",
+                    "rest/resource/%s" % (pk),
+                    params={},
+                    data=None
                 )
             
             def delete(pk: int) -> None:
@@ -86,8 +86,11 @@ class api:
                 Args:
                     pk(int)
                 """
-                package.rest.Resources.Resource.delete(
-                    pk=Type.validate(pk)
+                request(
+                    "DELETE",
+                    "rest/resource/%s" % (pk),
+                    params={},
+                    data=None
                 )
             
             def put(data: int, pk: int) -> None:
@@ -96,9 +99,11 @@ class api:
                     data(int)
                     pk(int)
                 """
-                package.rest.Resources.Resource.put(
-                    data=Type.validate(data),
-                    pk=Type.validate(pk)
+                request(
+                    "PUT",
+                    "rest/resource/%s" % (pk),
+                    params={},
+                    data=encode(data)
                 )
             
             def patch(data: bool, pk: int) -> None:
@@ -107,7 +112,9 @@ class api:
                     data(bool)
                     pk(int)
                 """
-                package.rest.Resources.Resource.patch(
-                    data=Type.validate(data),
-                    pk=Type.validate(pk)
+                request(
+                    "PATCH",
+                    "rest/resource/%s" % (pk),
+                    params={},
+                    data=encode(data)
                 )

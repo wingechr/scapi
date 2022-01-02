@@ -5,23 +5,28 @@
             "path": [
                 "get"
             ],
-            "callable": {
+            "source": {
                 "imports": [
                     "package",
                     "module"
                 ],
-                "attributes": [
+                "path": [
                     "get"
                 ]
             },
             "options": [
                 {
-                    "name": "arg1"
+                    "name": "arg1",
+                    "type": "integer",
+                    "flag": "a"
                 },
                 {
-                    "name": "arg2"
+                    "name": "arg2",
+                    "type": "string"
                 }
-            ],"output": {},
+            ],"output": {
+                "type": "string"
+            },
             "description": "Example description\nmultiline text"
             
         },
@@ -31,13 +36,13 @@
                 "submodule",
                 "post"
             ],
-            "callable": {
+            "source": {
                 "imports": [
                     "package",
                     "submodule",
                     "module"
                 ],
-                "attributes": [
+                "path": [
                     "post"
                 ]
             },
@@ -45,19 +50,26 @@
                 {
                     "name": "arg3",
                     "description": "blabla text arg3",
-                    "default": 1
+                    "default": 1,
+                    "type": "string",
+                    "flag": "a"
                 },
                 {
                     "name": "arg4",
-                    "nameOrigin": "arg4_orig"
+                    "source": "arg4_orig",
+                    "type": "number",
+                    "flag": "b"
                 }
             ],
             "input": {
                 "name": "data",
-                "nameOrigin": "data_orig"
+                "source": "data_orig",
+                "type": "number"
             },
-            "output": {},
-            "description": "bla b"
+            "output": {
+                "type": "boolean"
+            },
+            "description": "bla b"            
         },
         {
             "path": [
@@ -65,20 +77,22 @@
                 "resource",
                 "list"
             ],
-            "callable": {
+            "source": {
                 "imports": [
                     "package",
                     "rest"
                 ],
-                "attributes": [
+                "path": [
                     "Resources",
                     "Resource",
                     "list"
                 ]
             },
             "options": [],
-            "httpMethod": "GET",
-            "output": {}
+            "http": "GET",
+            "output": {
+                "type": "integer"
+            }
         },
         {
             "path": [
@@ -86,22 +100,25 @@
                 "resource",
                 "post"
             ],
-            "callable": {
+            "source": {
                 "imports": [
                     "package",
                     "rest"
                 ],
-                "attributes": [
+                "path": [
                     "Resources",
                     "Resource",
                     "post"
                 ]
             },
             "input": {
-                "name": "data"
+                "name": "data",
+                "type": "integer"
             },
-            "httpMethod": "POST",
-            "output": {}
+            "http": "POST",
+            "output": {
+                "type": "integer"
+            }
         },
         {
             "path": [
@@ -109,12 +126,12 @@
                 "resource",
                 "get"
             ],
-            "callable": {
+            "source": {
                 "imports": [
                     "package",
                     "rest"
                 ],
-                "attributes": [
+                "path": [
                     "Resources",
                     "Resource",
                     "get"
@@ -122,11 +139,14 @@
             },
             "arguments": [
                 {
-                    "name": "pk"
+                    "name": "pk",
+                    "type": "integer"
                 }
             ],
-            "httpMethod": "GET",
-            "output": {}
+            "http": "GET",
+            "output": {
+                "type": "integer"
+            }
         },
         {
             "path": [
@@ -134,12 +154,12 @@
                 "resource",
                 "delete"
             ],
-            "callable": {
+            "source": {
                 "imports": [
                     "package",
                     "rest"
                 ],
-                "attributes": [
+                "path": [
                     "Resources",
                     "Resource",
                     "delete"
@@ -147,10 +167,11 @@
             },
             "arguments": [
                 {
-                    "name": "pk"
+                    "name": "pk",
+                    "type": "integer"
                 }
             ],
-            "httpMethod": "DELETE"
+            "http": "DELETE"
         },
         {
             "path": [
@@ -158,26 +179,28 @@
                 "resource",
                 "put"
             ],
-            "callable": {
+            "source": {
                 "imports": [
                     "package",
                     "rest"
                 ],
-                "attributes": [
+                "path": [
                     "Resources",
                     "Resource",
                     "put"
                 ]
             },
             "input": {
-                "name": "data"
+                "name": "data",
+                "type": "integer"
             },
             "arguments": [
                 {
-                    "name": "pk"
+                    "name": "pk",
+                    "type": "integer"
                 }
             ],
-            "httpMethod": "PUT"
+            "http": "PUT"
         },
         {
             "path": [
@@ -185,26 +208,28 @@
                 "resource",
                 "patch"
             ],
-            "callable": {
+            "source": {
                 "imports": [
                     "package",
                     "rest"
                 ],
-                "attributes": [
+                "path": [
                     "Resources",
                     "Resource",
                     "patch"
                 ]
             },
             "input": {
-                "name": "data"
+                "name": "data",
+                "type": "boolean"
             },
             "arguments": [
                 {
-                    "name": "pk"
+                    "name": "pk",
+                    "type": "integer"
                 }
             ],
-            "httpMethod": "PATCH"
+            "http": "PATCH"
         }
     ]
 }
