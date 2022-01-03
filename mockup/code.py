@@ -1,2 +1,6 @@
-def fun(a, b, c=False, d=None):
-    return a * b * (2 if c else 1) * (d or 1)
+def fun(a, b, c=None, d=None):
+    print(a, b, c, d)
+    c = c or 0
+    d = sum(d or [])
+
+    return a * b + (c * d)

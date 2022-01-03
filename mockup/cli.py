@@ -1,3 +1,8 @@
+import logging
+import utils
+
+main = utils.create_cli_main()
+
 
 @main.group("mod")
 def main_mod():
@@ -5,20 +10,29 @@ def main_mod():
 
 
 @main_mod.command("fun")
-@click.argument("b", click.int)
-@click.option("--c", click.bool, help="None")
-@click.option("--d", click.int, help="None")
-def main_mod_fun(b: int, c: bool=None, d: int=None) -> None:
+@utils.click.pass_context
+@utils.click.argument("b", type=utils.click.INT)
+@utils.click.option("--c", type=utils.click.INT, help="None", multiple=False)
+@utils.click.option("--d", type=utils.click.INT, help="None", multiple=True)
+@utils.input
+@utils.output
+def main_mod_fun(ctx, data, b: int, c: bool=None, d=None) -> None:
     """Example description
     multiline text
     
-    Args:
-        b(int): TODO: description
-        c(bool): TODO: description
-        d(int): TODO: description
-    """
-    api.mod.fun(
+    Expect stdin data
+    Writes to stdout
+    """    
+    return utils.encode(
+        ctx.obj.api.mod.fun(
+        data=utils.decode(data),
         b=b,
         c=c,
         d=d
-    )
+    ))
+    
+    
+
+if __name__ == '__main__':
+    main()
+
