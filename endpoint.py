@@ -145,11 +145,13 @@ class Endpoint:
         params = cls.get_code_params(instance)
         output = cls.output_mod(instance)
         if params:
+            result += None
             result += IndentedCodeBlock(
                 "Args:",
                 *[p.get_code_docstring() for p in params]
             )
         if output:
+            result += None
             result += IndentedCodeBlock(
                 "Returns:",
                 output.get_code_docstring()
@@ -231,10 +233,21 @@ class EndpointApi(Endpoint):
     @classmethod
     def get_code(cls):
         code_imports = CodeBlock(*["import " + i for i in cls.get_imports()])
-        return CodeBlock(
-            code_imports,
+        code_main = CodeBlock(
+            code_imports,            
             cls.get_code_instances(path=['api'])
         )
+        code_wrapped = IndentedCodeBlock(
+            "def api():",
+            None,
+            code_main,
+            None,
+            "return api"
+
+            
+        )
+
+        return code_wrapped
     
     @classmethod
     def get_code_group(cls, elements, path):
@@ -256,6 +269,13 @@ class EndpointApi(Endpoint):
     @classmethod
     def wrap_return_name(cls):
         return "validate"
+
+    @classmethod
+    def get_code_fun_decorators(cls, instance): 
+        return [
+            "@staticmethod"
+        ]
+
 
     
 class EndpointServer(Endpoint):
@@ -440,8 +460,8 @@ class Parameter:
             raise Exception("no name")
         result = self.name        
         result += '(' + self.type.python_type_annotation + ')'
-        if self.description:
-            result += ': ' + self.description
+        result += ":" # always add the colon!
+        result += ' ' + (self.description or 'TODO: description')
         return result
 
 class Argument(Parameter):
