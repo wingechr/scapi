@@ -11,8 +11,8 @@ The api layers are:
     wrapper functions around exising sources that validate inputs and output and 
     clean documentation
 
-* 2: **server**:
-    wsgi server that translates the api to http calls
+* 2: **wsgi**:
+    wsgi script that translates the api to http calls
 
 * 3: **client**:
     python (later: maybe also javascript) client with the same interface as the level 1
@@ -101,7 +101,7 @@ def Api(python_paths=None):
 
 ```
 
-### server.py
+### wsgi.py
 
 ```python
 from . import utils

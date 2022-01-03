@@ -38,7 +38,7 @@ def main(schema_json, output_path):
 
     # generate code for layers
     text_dump(EndpointApi.get_code(), output_path + '/api.py')
-    text_dump(EndpointServer.get_code(), output_path + '/server.py')
+    text_dump(EndpointServer.get_code(), output_path + '/wsgi.py')
     text_dump(EndpointClient.get_code(), output_path + '/client.py')
     text_dump(EndpointCli.get_code(), output_path + '/cli.py')
 
