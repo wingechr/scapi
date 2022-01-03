@@ -3,6 +3,7 @@ import sys
 import datetime
 import json
 import importlib
+from collections import OrderedDict
 
 
 def json_serialize(x):
@@ -70,3 +71,27 @@ class Importer:
         return result
 
 
+
+
+def add_into_tree(tree, element, path):
+    # add self into tree
+    path, name = path[:-1], path[-1]
+    for p in path:
+        if p not in tree:
+            tree[p] = OrderedDict()
+        tree = tree[p]
+    if name in tree:
+        raise Exception(path)
+    tree[name] = element
+    
+
+def iter_tree(node, process_group, process_node, path=None):
+    path = path or []
+    if isinstance(node, OrderedDict):
+        # its a group:
+        items = []
+        for name, node in node.items():
+            items.append(iter_tree(node, process_group, process_node, path=path + [name]))
+        return process_group(items, path)
+    else:
+        return process_node(node, path)

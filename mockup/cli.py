@@ -14,8 +14,8 @@ def main_mod():
 @utils.click.argument("b", type=utils.click.INT)
 @utils.click.option("--c", type=utils.click.INT, help="None", multiple=False)
 @utils.click.option("--d", type=utils.click.INT, help="None", multiple=True)
-@utils.input
-@utils.output
+@utils.input_stdin
+@utils.output_stdout
 def main_mod_fun(ctx, data, b: int, c: bool=None, d=None) -> None:
     """Example description
     multiline text

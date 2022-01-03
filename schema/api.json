@@ -5,7 +5,27 @@
             "type": "string",
             "pattern": "^[a-z][a-z0-9_]*$"
         },
-        "type": {"type": "string", "enum": ["string", "number", "integer", "boolean", "array"]},
+        "type": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "type": {
+                    "type": "string",
+                    "enum": [
+                        "string",
+                        "number",
+                        "integer",
+                        "boolean"
+                    ]
+                },
+                "content": {
+                    "type": "string"
+                },
+                "multiple": {
+                    "type": "boolean"
+                }
+            }
+        },
         "identifierCaseInsensitive": {
             "type": "string",
             "pattern": "^[a-zA-Z][a-zA-Z0-9_]*$"
@@ -24,10 +44,14 @@
     "type": "object",
     "additionalProperties": false,
     "required": [
-        "endpoints"
+        "endpoints",
+        "version"
     ],
     "properties": {
         "$schema": {
+            "type": "string"
+        },
+        "version": {
             "type": "string"
         },
         "endpoints": {
@@ -38,7 +62,8 @@
                 "additionalProperties": false,
                 "required": [
                     "path",
-                    "source"
+                    "source",
+                    "description"
                 ],
                 "properties": {
                     "path": {
@@ -77,7 +102,8 @@
                             "additionalProperties": false,
                             "required": [
                                 "name",
-                                "type"
+                                "type",
+                                "description"
                             ],
                             "properties": {
                                 "name": {
@@ -86,12 +112,15 @@
                                 "description": {
                                     "type": "string"
                                 },
-                                "default": {},
                                 "source": {
                                     "type": "string"
                                 },
-                                "type": {"$ref": "#/definitions/type"},
-                                "flag": {"type": "string"}
+                                "type": {
+                                    "$ref": "#/definitions/type"
+                                },
+                                "flag": {
+                                    "type": "string"
+                                }
                             }
                         }
                     },
@@ -101,7 +130,9 @@
                             "type": "object",
                             "additionalProperties": false,
                             "required": [
-                                "name", "type"
+                                "name",
+                                "type",
+                                "description"
                             ],
                             "properties": {
                                 "name": {
@@ -113,7 +144,9 @@
                                 "source": {
                                     "type": "string"
                                 },
-                                "type": {"$ref": "#/definitions/type"}
+                                "type": {
+                                    "$ref": "#/definitions/type"
+                                }
                             }
                         }
                     },
@@ -124,7 +157,9 @@
                         "type": "object",
                         "additionalProperties": false,
                         "required": [
-                            "name", "type"
+                            "name",
+                            "type",
+                            "description"
                         ],
                         "properties": {
                             "name": {
@@ -136,20 +171,25 @@
                             "source": {
                                 "type": "string"
                             },
-                            "type": {"$ref": "#/definitions/type"}
+                            "type": {
+                                "$ref": "#/definitions/type"
+                            }
                         }
                     },
                     "output": {
                         "type": "object",
                         "additionalProperties": false,
                         "required": [
-                            "type"
+                            "type",
+                            "description"
                         ],
                         "properties": {
                             "description": {
                                 "type": "string"
-                            },                            
-                            "type": {"$ref": "#/definitions/type"}
+                            },
+                            "type": {
+                                "$ref": "#/definitions/type"
+                            }
                         }
                     },
                     "description": {

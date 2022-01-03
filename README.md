@@ -47,6 +47,14 @@ The build tool:
   * prepare response
   * send output or []
 
+* types:
+  * click.STRING string str
+  * click.BOOL boolean bool
+  * click.INT integer int
+  * click.FLOAT number float
+  * multiple=True array list
+  * bytes
+
 ## Exmaple structure (WIP)
 
 ### api.py
@@ -184,7 +192,6 @@ def Api(host):
 
 ```
 
-
 ### cli.py
 
 ```python
@@ -202,7 +209,7 @@ def main(ctx, host):
     ctx.obj["api"] = api
 
 @main.command("example_function")
-@main.option("--arg1", default=1, help="")
+@main.option("--arg1", help="")
 def main_example_function(ctx, arg1):
     data = utils.decode(stdin.read())
     ctx.obj["api"].example_function(

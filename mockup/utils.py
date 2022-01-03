@@ -104,19 +104,21 @@ class WSGIHandler:
     def get_status_str(code):
         return '%s %s' % (code, HTTPStatus(code).phrase)
 
+def input_stdin(content_type):
+    def decorator(fun):
+        def decorated_function(ctx, *args, **kwargs):
+            input = sys.stdin.buffer.read()
+            return fun(ctx, input, *args, **kwargs)        
+        return decorated_function
+    return decorator
 
-def output(fun):
-    def fun2(*args, **kwargs):
-        output = fun(*args, **kwargs)
-        sys.stdout.buffer.write(output)
-    
-    return fun2
-
-def input(fun):
-    def fun2(ctx, *args, **kwargs):
-        input = sys.stdin.buffer.read()
-        return fun(ctx, input, *args, **kwargs)
-    return fun2
+def output_stdout(content_type):
+    def decorator(fun):
+        def decorated_function(ctx, *args, **kwargs):
+            output = fun(*args, **kwargs)
+            sys.stdout.buffer.write(output)      
+        return decorated_function
+    return decorator
 
 def request(method, url, params=None, data=None):    
     res = requests.request(method, url, params=params, data=data)

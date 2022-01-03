@@ -1,5 +1,6 @@
 {
     "$schema": "../schema/api.json",
+    "version": "0.1.0",
     "endpoints": [
         {
             "path": [
@@ -15,28 +16,44 @@
                 ]
             },
             "input": {
-                "type": "integer",
+                "type": {
+                    "content": "application/json; charset=utf8; schema="
+                },
                 "name": "data",
-                "source": "a"
+                "source": "a",
+                "description": "desc"
             },
             "arguments": [
                 {
                     "name": "b",
-                    "type": "integer"
+                    "type": {
+                        "type": "integer"
+                    },
+                    "description": "description"
                 }
             ],
             "options": [
                 {
                     "name": "c",
-                    "type": "boolean"
+                    "type": {
+                        "type": "boolean"
+                    },
+                    "description": "desc"
                 },
                 {
                     "name": "d",
-                    "type": "array"
+                    "type": {
+                        "type": "integer",
+                        "multiple": true
+                    },
+                    "description": "desc"
                 }
             ],
             "output": {
-                "type": "integer"
+                "type": {
+                    "content": "application/json; charset=utf8; schema=output_schema"
+                },
+                "description": "desc"
             },
             "description": "Example description\nmultiline text"
         }

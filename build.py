@@ -5,8 +5,11 @@ import click
 import shutil
 import jsonschema
 from utils import json_load, text_dump
-from endpoint import Endpoint, EndpointApi, EndpointServer, EndpointClient, EndpointCli
-
+from endpoint import Endpoint
+from endpoint_api import EndpointApi
+from endpoint_wsgi import EndpointWSGI
+from endpoint_client import EndpointClient
+from endpoint_cli import EndpointCli
 
 
 
@@ -26,19 +29,19 @@ def main(schema_json, output_path):
     if not os.path.isdir(output_path):
         os.makedirs(output_path)
 
-    # copy schema + files from shared
+    # files from shared
     for name in os.listdir(SRC_DIR + '/shared'):
         if not name.endswith('.py'):
             continue
-        shutil.copy(SRC_DIR + '/shared/' + name, output_path + '/' + name)
-    shutil.copy(schema_json, output_path + '/schema.json')
+        shutil.copy(SRC_DIR + '/shared/' + name, output_path + '/' + name)    
     
     # create endpoints
     _endpoints = [Endpoint(**ep) for ep in schema["endpoints"]]
+    Endpoint.version = schema["version"]
 
     # generate code for layers
     text_dump(EndpointApi.get_code(), output_path + '/api.py')
-    text_dump(EndpointServer.get_code(), output_path + '/wsgi.py')
+    text_dump(EndpointWSGI.get_code(), output_path + '/wsgi.py')
     text_dump(EndpointClient.get_code(), output_path + '/client.py')
     text_dump(EndpointCli.get_code(), output_path + '/cli.py')
 
