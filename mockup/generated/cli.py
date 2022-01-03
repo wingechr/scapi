@@ -19,18 +19,14 @@ def main_mod(ctx):
 @utils.click.option("--d", type=utils.click.types.INT, multiple=True, help="desc")
 @utils.input_stdin
 @utils.output_stdout
-def main_mod_fun(ctx, data: object, b: int, c: bool=None, d: list=None) -> object:
+def main_mod_fun(ctx, data: object, b: int, c: bool = None, d: list = None) -> object:
     """Example description
     multiline text"""
     return utils.encode_content(
-        ctx.obj.api.mod.fun(
-            data=utils.decode_content(data, None),
-            b=b,
-            c=c,
-            d=d
-        )
-        ,"output_schema"
+        ctx.obj.api.mod.fun(data=utils.decode_content(data, None), b=b, c=c, d=d),
+        "output_schema",
     )
+
 
 if __name__ == "__main__":
     main()

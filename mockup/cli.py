@@ -16,23 +16,15 @@ def main_mod():
 @utils.click.option("--d", type=utils.click.INT, help="None", multiple=True)
 @utils.input_stdin
 @utils.output_stdout
-def main_mod_fun(ctx, data, b: int, c: bool=None, d=None) -> None:
+def main_mod_fun(ctx, data, b: int, c: bool = None, d=None) -> None:
     """Example description
     multiline text
-    
+
     Expect stdin data
     Writes to stdout
-    """    
-    return utils.encode(
-        ctx.obj.api.mod.fun(
-        data=utils.decode(data),
-        b=b,
-        c=c,
-        d=d
-    ))
-    
-    
+    """
+    return utils.encode(ctx.obj.api.mod.fun(data=utils.decode(data), b=b, c=c, d=d))
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     main()
-

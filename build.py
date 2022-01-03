@@ -12,12 +12,11 @@ from endpoint_client import EndpointClient
 from endpoint_cli import EndpointCli
 
 
-
 @click.command()
 @click.argument("schema_json", type=click.Path(exists=True))
 @click.argument("output_path", type=click.Path(exists=False))
 def main(schema_json, output_path):
-    
+
     SRC_DIR = os.path.abspath(os.path.dirname(__file__))
 
     # load and validate schema
@@ -30,21 +29,21 @@ def main(schema_json, output_path):
         os.makedirs(output_path)
 
     # files from shared
-    for name in os.listdir(SRC_DIR + '/shared'):
-        if not name.endswith('.py'):
+    for name in os.listdir(SRC_DIR + "/shared"):
+        if not name.endswith(".py"):
             continue
-        shutil.copy(SRC_DIR + '/shared/' + name, output_path + '/' + name)    
-    
+        shutil.copy(SRC_DIR + "/shared/" + name, output_path + "/" + name)
+
     # create endpoints
     _endpoints = [Endpoint(**ep) for ep in schema["endpoints"]]
     Endpoint.version = schema["version"]
 
     # generate code for layers
-    text_dump(EndpointApi.get_code(), output_path + '/api.py')
-    text_dump(EndpointWSGI.get_code(), output_path + '/wsgi.py')
-    text_dump(EndpointClient.get_code(), output_path + '/client.py')
-    text_dump(EndpointCli.get_code(), output_path + '/cli.py')
+    text_dump(EndpointApi.get_code(), output_path + "/api.py")
+    text_dump(EndpointWSGI.get_code(), output_path + "/wsgi.py")
+    text_dump(EndpointClient.get_code(), output_path + "/client.py")
+    text_dump(EndpointCli.get_code(), output_path + "/cli.py")
 
-    
+
 if __name__ == "__main__":
     main(prog_name="python3 build.py")

@@ -2,24 +2,23 @@ import logging
 import utils
 
 
-def api():    
+def api():
 
-    import code    
+    import code
+
     class api:
-        
         class mod:
-            
             @staticmethod
-            def fun(data: int, b: int, c: bool=None, d: int=None) -> int:
+            def fun(data: int, b: int, c: bool = None, d: int = None) -> int:
                 """Example description
                 multiline text
-                
+
                 Args:
                     data(int): TODO: description
                     b(int): TODO: description
                     c(bool): TODO: description
                     d(int): TODO: description
-                
+
                 Returns:
                     int
                 """
@@ -28,9 +27,9 @@ def api():
                         a=utils.validate(data, None),
                         b=utils.validate(b, None),
                         c=utils.validate(c, None),
-                        d=utils.validate(d, None)
+                        d=utils.validate(d, None),
                     ),
-                    None
+                    None,
                 )
-    
+
     return api

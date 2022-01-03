@@ -27,11 +27,13 @@ def text_load(filepath):
     with open(filepath, "r", encoding="utf-8") as file:
         return file.read()
 
+
 def json_dump(data, filepath):
     data_s = json.dumps(
         data, indent=2, sort_keys=True, ensure_ascii=False, default=json_serialize
     )
-    text_dump(data_s, filepath)    
+    text_dump(data_s, filepath)
+
 
 def json_load(filepath):
     with open(filepath, "r", encoding="utf-8") as file:
@@ -57,20 +59,18 @@ class Importer:
             if path not in cls.paths:
                 sys.path.append(path)
                 cls.paths.add(path)
-        
+
         # get module
         module_key = (package, module)
         if module_key not in cls.modules:
             cls.modules[module_key] = importlib.import_module(module, package=package)
         result = cls.modules[module_key]
-        
+
         # go down attributes
         for attr in attributes:
             result = getattr(result, attr)
-        
+
         return result
-
-
 
 
 def add_into_tree(tree, element, path):
@@ -83,7 +83,7 @@ def add_into_tree(tree, element, path):
     if name in tree:
         raise Exception(path)
     tree[name] = element
-    
+
 
 def iter_tree(node, process_group, process_node, path=None):
     path = path or []
@@ -91,7 +91,9 @@ def iter_tree(node, process_group, process_node, path=None):
         # its a group:
         items = []
         for name, node in node.items():
-            items.append(iter_tree(node, process_group, process_node, path=path + [name]))
+            items.append(
+                iter_tree(node, process_group, process_node, path=path + [name])
+            )
         return process_group(items, path)
     else:
         return process_node(node, path)
