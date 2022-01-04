@@ -50,7 +50,7 @@ def validate_content(data, content_type):
     elif content_type["type"] == "application/json":
         pass
         schema = content_type.get("schema")
-        # TODO: validate schema using frictionless?: where are resource schemata stored??        
+        # TODO: validate schema using frictionless?: where are resource schemata stored??
     else:
         raise NotImplementedError(content_type["type"])
     return data
@@ -297,7 +297,7 @@ def get_api(remote=None):
     if remote:
         api = api_remote(remote)
     else:
-        api = api_local()
+        api = api_local  # you can also do api_local() to get an instance, but not required
     return api
 
 

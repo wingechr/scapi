@@ -28,9 +28,30 @@ class EndpointWSGI(Endpoint):
         )
 
     @classmethod
+    def get_code_fun_docstring(cls, instance):
+        result = CodeBlock('"""%s' % instance.description)
+
+        # create URL
+        url_pattern = "/".join(EndpointWSGI.get_url_path(instance))
+        result += CodeBlock(
+            None,
+            IndentedCodeBlock(
+                "URL", None, "%s %s" % (instance.http, url_pattern), None
+            ),
+        )
+
+        result += '"""'
+        return result
+
+    @classmethod
+    def get_url_path(cls, instance):
+        path_args = ["%s" % p for p in instance.path_url]
+        path_args += ["(?P<%s>[^/?]+)" % a.name for a in instance.arguments.values()]
+        return path_args
+
+    @classmethod
     def get_code_fun_decorators(cls, instance):
-        path_args = ['"%s"' % p for p in instance.path_url]
-        path_args += ['"(?P<%s>.+)"' % a.name for a in instance.arguments.values()]
+        path_args = ['"%s"' % p for p in cls.get_url_path(instance)]
         input_name = '"%s"' % instance.input.name if instance.input else None
         output_content_type = (
             '"%s"' % instance.output.type.content if instance.output else None
@@ -44,10 +65,6 @@ class EndpointWSGI(Endpoint):
     @classmethod
     def get_code_fun_name(cls, instance):
         return "route_" + instance.name_long
-
-    @classmethod
-    def get_code_fun_docstring(cls, instance):
-        return CodeBlock()
 
     @classmethod
     def get_code_source_fun_name(cls, instance):

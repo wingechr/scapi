@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import os
+import re
 from typing import OrderedDict
 import click
 import shutil
@@ -31,10 +32,14 @@ def main(schema_json, output_path):
         os.makedirs(output_path)
 
     # files from shared
-    for name in os.listdir(SRC_DIR + "/shared"):
-        if not name.endswith(".py"):
-            continue
-        shutil.copy(SRC_DIR + "/shared/" + name, output_path + "/" + name)
+    shared_path = SRC_DIR + "/shared"
+    for rt, _ds, fs in os.walk(shared_path):
+        for f in fs:
+            if re.match("^.*\.(py|rst)$", f):
+                path = os.path.relpath(rt + "/" + f, shared_path)
+                os.makedirs(os.path.dirname(output_path + "/" + path), exist_ok=True)
+                shutil.copy(shared_path + "/" + path, output_path + "/" + path)
+        #
     # save schema, set metaschema
     json_dump(metaschema, output_path + "/metaschema.json")
     schema_copy = deepcopy(schema)

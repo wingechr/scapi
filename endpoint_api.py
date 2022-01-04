@@ -2,6 +2,7 @@
 
 from code import CodeBlock, IndentedCodeBlock, CommaJoinedCodeBlock
 from endpoint import Endpoint
+from endpoint_wsgi import EndpointWSGI
 from classes import Input, Output
 
 
@@ -26,17 +27,9 @@ class EndpointApi(Endpoint):
             '__version__ = "%s"' % Endpoint.version,
             None,
             None,
-            IndentedCodeBlock(
-                "def api():",
-                None,
-                "# we put the imports inside the function so we don't import it when it's remote",
-                *[
-                    "import %s" % i for i in cls.get_imports()
-                ],  # imports used by base code
-                code_main,
-                None,
-                "return api"
-            ),
+            "# imports of external code",
+            *["import %s" % i for i in cls.get_imports()],  # imports used by base code
+            code_main
         )
 
     @classmethod
@@ -58,6 +51,24 @@ class EndpointApi(Endpoint):
             return "utils.validate_content"
         else:
             return "utils.validate"
+
+    @classmethod
+    def get_code_fun_docstring(cls, instance):
+        result = CodeBlock('"""%s' % instance.description)
+        params = cls.get_code_params(instance)
+        output = cls.get_code_output(instance)
+
+        if params:
+            result += None
+            result += IndentedCodeBlock(
+                "Args:", *[p.get_code_docstring() for p in params]
+            )
+        if output:
+            result += None
+            result += IndentedCodeBlock("Returns:", output.get_code_docstring())
+
+        result += '"""'
+        return result
 
     @classmethod
     def get_code_wrap_arguments(cls, instance, param):

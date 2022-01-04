@@ -115,20 +115,7 @@ class Endpoint:
 
     @classmethod
     def get_code_fun_docstring(cls, instance):
-        result = CodeBlock('"""%s' % instance.description)
-        params = cls.get_code_params(instance)
-        output = cls.get_code_output(instance)
-        if params:
-            result += None
-            result += IndentedCodeBlock(
-                "Args:", *[p.get_code_docstring() for p in params]
-            )
-        if output:
-            result += None
-            result += IndentedCodeBlock("Returns:", output.get_code_docstring())
-
-        result += '"""'
-        return result
+        return CodeBlock('"""%s"""' % instance.description)
 
     @classmethod
     def get_code_source_fun_name(cls, instance):
