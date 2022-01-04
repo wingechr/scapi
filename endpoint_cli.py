@@ -32,6 +32,11 @@ class EndpointCli(Endpoint):
 
     @classmethod
     def get_code_fun_decorators(cls, instance):
+        path_args = ["%s" % p for p in instance.path_url]
+        path_args += ["(?P<%s>[^/?]+)" % a.name for a in instance.arguments.values()]
+
+    @classmethod
+    def get_code_fun_decorators(cls, instance):
         path = ["main"] + instance.path
         group_path, name = path[:-1], path[-1]
         group_name = "_".join(group_path)
@@ -104,7 +109,10 @@ class EndpointCli(Endpoint):
 
     @classmethod
     def get_code_params(cls, instance):
-        return [p.get_for_wsgi_function() for p in super().get_code_params(instance)]
+        return [
+            p.get_for_wsgi_function() if isinstance(p, Input) else p
+            for p in super().get_code_params(instance)
+        ]
 
     @classmethod
     def get_code_call_params(cls, instance):

@@ -35,7 +35,6 @@ class EndpointClient(EndpointApi):
 
     @classmethod
     def get_code_fun_body_call_params(cls, instance) -> list:
-        headers = OrderedDict()
         params = [("method", '"%s"' % instance.http)]
 
         if instance.arguments:
@@ -67,10 +66,7 @@ class EndpointClient(EndpointApi):
             wrap_args = ", " + cls.get_code_wrap_arguments(instance, p)
             line = "%s(%s%s)" % (wrap_fun, p.name, wrap_args)
             params.append(("data", line))
-            headers["Content-Type"] = instance.input.type.content
-
-        if headers:
-            params.append(("headers", repr(dict(headers))))
+            params.append(("content_type", '"%s"' % instance.input.type.content))
 
         return ["%s=%s" % p for p in params]
 

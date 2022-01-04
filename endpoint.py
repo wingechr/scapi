@@ -21,6 +21,7 @@ class Endpoint:
         http=None,
         description=None,
         examples=None,
+        authorization=None,
     ):
         self.description = description
         self.path = path
@@ -32,6 +33,7 @@ class Endpoint:
         self.options = OrderedDict((o["name"], Option(**o)) for o in options or [])
         self.input = Input(**input) if input is not None else None
         self.output = Output(**output) if output is not None else None
+        self.authorization = authorization
 
         add_into_tree(self._tree, self, self.path)
         self._instances.append(self)

@@ -69,7 +69,64 @@
                     "inputs": {"data": 2, "b": 3, "c": true, "d": [4, 1]},
                     "output": 506
                 }
-            ]
+            ],
+            "authorization": true
+        },
+        {
+            "path": [
+                "mod",
+                "fun2"
+            ],
+            "source": {
+                "imports": [
+                    "mycode"
+                ],
+                "path": [
+                    "fun"
+                ]
+            },           
+            "arguments": [
+                {
+                    "name": "b",
+                    "type": {
+                        "type": "integer"
+                    },
+                    "description": "description"
+                }
+            ],
+            "options": [
+                {
+                    "name": "c",
+                    "type": {
+                        "type": "boolean"
+                    },
+                    "description": "desc"
+                },
+                {
+                    "name": "d",
+                    "type": {
+                        "type": "integer",
+                        "multiple": true
+                    },
+                    "description": "desc"
+                }
+            ],            
+            "description": "Example description\nmultiline text",
+            "examples":[
+                {
+                    "inputs": {"data": 2, "b": 3},
+                    "output": 6
+                },
+                {
+                    "inputs": {"data": 2, "b": 3, "d": [4, 1]},
+                    "output": 11
+                },
+                {
+                    "inputs": {"data": 2, "b": 3, "c": true, "d": [4, 1]},
+                    "output": 506
+                }
+            ],
+            "authorization": false
         }
     ]
 }

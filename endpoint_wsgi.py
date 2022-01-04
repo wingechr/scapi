@@ -32,7 +32,7 @@ class EndpointWSGI(Endpoint):
         result = CodeBlock('"""%s' % instance.description)
 
         # create URL
-        url_pattern = "/".join(EndpointWSGI.get_url_path(instance))
+        url_pattern = "/".join(cls.get_url_path(instance))
         result += CodeBlock(
             None,
             IndentedCodeBlock(

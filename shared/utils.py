@@ -27,7 +27,12 @@ def load_schema():
 
 def validate(data, schema):
     # TODO: allow None always?
+    # TODO: give argument name on error
     if data is not None:
+        # TODO: CLI returns tuple instead of list
+        # which fails validation
+        if isinstance(data, tuple):
+            data = list(data)
         jsonschema.validate(data, schema)
     return data
 
@@ -134,9 +139,18 @@ class WSGIHandler:
         content_type = environ["CONTENT_TYPE"].lower()
         content_length = int(environ["CONTENT_LENGTH"] or "0")
         authorization = environ.get("HTTP_AUTHORIZATION")
+
+        request_messages = environ.get("HTTP_MESSAGES")
+        if request_messages:
+            request_messages = json.loads(request_messages)
+
         if authorization:  # <auth-scheme> <authorisation-parameters>
-            authorization = authorization.split(" ")
-            authorization = (authorization[0].upper(), " ".join(authorization[1:]))
+            token = re.match(
+                "^Token:? +(?P<token>[^ ]+)$", authorization, re.IGNORECASE
+            ).group(1)
+        else:
+            token = None
+
         input = environ["wsgi.input"]
 
         logging.debug(
@@ -146,8 +160,7 @@ class WSGIHandler:
                 "query": query,
                 "content_type": content_type,
                 "content_length": content_length,
-                # "content_length_actual": content_length_actual,
-                "authorization": authorization,
+                "token": token,
             }
         )
 
@@ -171,11 +184,16 @@ class WSGIHandler:
 
         result = handler(**query) or b""
 
+        # TODO get other success codes
         status = self.get_status_str(200)
         output_content_type = attributes.get("output_content_type")
+
+        response_messages = [{"level": "DEBUG", "data": "test"}]
+
         response_headers = [
             ("Content-type", output_content_type),
             ("Content-Length", str(len(result))),
+            ("Messages", json.dumps(response_messages, ensure_ascii=True)),
         ]
         start_response(status, response_headers)
         return [result]
@@ -244,11 +262,25 @@ def input_stdin(fun):
     return decorated_function
 
 
-def request(method, url, params=None, data=None, headers=None):
+def request(method, url, params=None, data=None, content_type=None):
+    headers = {}
+    if content_type:
+        headers["Content-Type"] = content_type
+
+    request_messages = []
+    headers["Messages"] = json.dumps(request_messages, ensure_ascii=True)
+
     res = requests.request(method, url, params=params, data=data, headers=headers)
     # todo compare expected with recieved content type?
-    logging.debug(res.headers)
+
+    content_type = res.headers["content-type"]  # case insensitive dict
+    response_messages = res.headers.get("messages")
+    if response_messages:
+        response_messages = json.loads(response_messages)
+        logging.error("CLIENT RECEIVED MESSAGES %s", response_messages)
+
     res.raise_for_status()
+
     return res.content
 
 
@@ -335,12 +367,12 @@ def create_cli_main(version):
         type=click.Choice(["debug", "info", "warning", "error"]),
         default="info",
     )
-    @click.option("--remote", "-r")
-    def main(ctx, loglevel, remote):
+    @click.option("--remote", "-r", help="Example: http://localhost:8000")
+    @click.option("--token", "-t", help="Authorization token")
+    def main(ctx, loglevel, remote, token):
         if isinstance(loglevel, str):  # e.g. 'debug'/'DEBUG' -> logging.DEBUG
             loglevel = getattr(logging, loglevel.upper())
         coloredlogs.install(level=loglevel)
-
-        ctx.obj = SimpleNamespace(api=get_api(remote))
+        ctx.obj = SimpleNamespace(api=get_api(remote), token=token)
 
     return main

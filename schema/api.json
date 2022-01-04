@@ -207,6 +207,9 @@
                                 "output": {}
                             }
                         }
+                    },
+                    "authorization": {
+                        "type":"boolean"
                     }
                 }
             }
