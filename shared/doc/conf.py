@@ -28,7 +28,7 @@ pygments_style = "sphinx"
 # templates_path = [os.path.join(docs_path, "_templates")]
 # html_static_path = [os.path.join(docs_path, "_static")]
 exclude_dirs = []  # do not include in autodoc
-nitpicky = True
+nitpicky = False
 html_use_index = True
 add_function_parentheses = True
 

@@ -98,13 +98,6 @@ class Parameter:
         if not self.description:
             raise Exception("Missing description for %s" % self.name)
 
-    # def get_modified(self, type=None):
-    #    copy = deepcopy(self)
-    #    if type:
-    #        copy.type = Type(**type)
-    #    copy.source = copy.name
-    #    return copy
-
     def get_code_fun_def(self):
         if not self.name:
             raise Exception("no name")
@@ -117,11 +110,18 @@ class Parameter:
         if not self.name:
             raise Exception("no name")
         result = self.name
-        result += "(" + self.type.python_type_annotation + ")"
+        if isinstance(self, Option):
+            result += "(" + self.type.python_type_annotation + ", optional)"
+        else:
+            result += "(" + self.type.python_type_annotation + ")"
         result += ":"  # always add the colon!
+
         if self.type.multiple:
             # also show types of elements
             result += " List of %s." % self.type.python_type_annotation_single
+        elif self.type.content_params.get("schema"):
+            # also show content type
+            result += " Data schema is %s." % self.type.content_params.get("schema")
 
         result += " " + self.description
         return result
@@ -129,6 +129,25 @@ class Parameter:
     @property
     def click_help(self):
         return self.description.replace("\n", " ")
+
+    def _copy(self):
+        copy = deepcopy(self)
+        return copy
+
+    def get_for_source_function(self):
+        copy = self._copy()
+        copy.name = copy.source
+        return copy
+
+    def get_for_wsgi_function(self):
+        copy = self._copy()
+        if isinstance(self, (Input, Output)):
+            copy.type = Type(type="bytes")
+        elif isinstance(self, Option):
+            copy.type = Type(type="string", multiple=True)
+        else:
+            copy.type = Type(type="string")
+        return copy
 
 
 class Argument(Parameter):
@@ -151,10 +170,6 @@ class Option(Parameter):
     def __init__(self, name, type, description=None, source=None, **_kwargs):
         super().__init__(name=name, type=type, description=description, source=source)
 
-    def get_code_docstring(self):
-        result = super().get_code_docstring()
-        return result
-
 
 class Input(Argument):
     pass
@@ -165,9 +180,14 @@ class Output(Parameter):
         super().__init__(type=type, description=description)
 
     def get_code_docstring(self):
-        result = self.type.python_type_annotation
+        result = self.type.python_type_annotation + ":"
+
+        if self.type.content_params.get("schema"):
+            # also show content type
+            result += " Data schema is %s." % self.type.content_params.get("schema")
+
         if self.description:
-            result += ": " + self.description
+            result += " " + self.description
         return result
 
 

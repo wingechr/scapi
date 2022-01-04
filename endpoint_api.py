@@ -80,3 +80,7 @@ class EndpointApi(Endpoint):
                 return "None"
         else:
             return param.type.python_type_validation
+
+    @classmethod
+    def get_code_call_params(cls, instance):
+        return [p.get_for_source_function() for p in cls.get_code_params(instance)]

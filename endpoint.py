@@ -145,6 +145,10 @@ class Endpoint:
         return params
 
     @classmethod
+    def get_code_call_params(cls, instance):
+        return cls.get_code_params(instance)
+
+    @classmethod
     def get_code_output(cls, instance):
         return instance.output
 
@@ -166,20 +170,20 @@ class Endpoint:
         return result
 
     @classmethod
-    def get_code_fun_body_call_params(cls, instance, use_source=True) -> list:
+    def get_code_fun_body_call_params(cls, instance) -> list:
         params = cls.get_code_params(instance)
-        lines = []
-        for p in params:
+        call_params = cls.get_code_call_params(instance)
 
-            wrap_fun = cls.get_code_wrap_function(instance, p)
-            name_left = p.source if use_source else p.name
+        lines = []
+        for p, cp in zip(params, call_params):
+            wrap_fun = cls.get_code_wrap_function(instance, cp)
             if wrap_fun:
-                wrap_args = cls.get_code_wrap_arguments(instance, p) or ""
+                wrap_args = cls.get_code_wrap_arguments(instance, cp) or ""
                 if wrap_args:
                     wrap_args = ", " + wrap_args
-                line = "%s=%s(%s%s)" % (name_left, wrap_fun, p.name, wrap_args)
+                line = "%s=%s(%s%s)" % (cp.name, wrap_fun, p.name, wrap_args)
             else:
-                line = "%s=%s" % (name_left, p.name)
+                line = "%s=%s" % (cp.name, p.name)
 
             lines.append(line)
 

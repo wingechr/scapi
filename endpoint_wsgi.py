@@ -23,7 +23,7 @@ class EndpointWSGI(Endpoint):
             code_main,
             None,
             IndentedCodeBlock(
-                'if __name__ == "__main__":', "utils.wsgi_serve(__file__)"
+                'if __name__ == "__main__":', "utils.wsgi_serve_script(__file__)"
             ),
         )
 
@@ -36,7 +36,10 @@ class EndpointWSGI(Endpoint):
         result += CodeBlock(
             None,
             IndentedCodeBlock(
-                "URL", None, "%s %s" % (instance.http, url_pattern), None
+                "URL::",  # rst indented literal code
+                None,
+                "%s %s" % (instance.http, url_pattern),
+                None,
             ),
         )
 
@@ -74,25 +77,19 @@ class EndpointWSGI(Endpoint):
     def get_code_params(cls, instance):
         params = []
         for p in super().get_code_params(instance):
-            # if isinstance(p, Input):
-            #    p = p.get_modified(type={"type": "bytes"})
-            # elif isinstance(p, Argument):
-            #    p = p.get_modified(type={"type": "string"})
-            # elif isinstance(p, Option):
-            #    p = p.get_modified(type={"type": "string", "multiple": True})
             params.append(p)
         return params
 
     @classmethod
     def get_code_fun_body_call_params(cls, instance) -> list:
-        return super().get_code_fun_body_call_params(instance, use_source=False)
+        return super().get_code_fun_body_call_params(instance)
 
     @classmethod
     def get_code_output(cls, instance):
         output = instance.output
         if not output:
             return None
-        # output = instance.output.get_modified(type={"type": "bytes"})
+        output = instance.output.get_for_wsgi_function()
         return output
 
     @classmethod
@@ -119,3 +116,11 @@ class EndpointWSGI(Endpoint):
                 return "None"
         else:
             return '"%s"' % param.type.type
+
+    @classmethod
+    def get_code_params(cls, instance):
+        return [p.get_for_wsgi_function() for p in super().get_code_params(instance)]
+
+    @classmethod
+    def get_code_call_params(cls, instance):
+        return super().get_code_params(instance)

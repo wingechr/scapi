@@ -34,6 +34,7 @@ def validate(data, schema):
 
 def parse_content_type(content_type):
     result = dict()
+    content_type = content_type or ""
     for idx, part in enumerate(content_type.split(";")):
         if idx == 0:
             key, name = "type", part
@@ -44,6 +45,8 @@ def parse_content_type(content_type):
 
 
 def validate_content(data, content_type):
+    # TODO: don't use content_type
+    # but only validate if we have a datapackage.resource schema
     content_type = parse_content_type(content_type)
     if content_type["type"] == "application/octet-stream":
         assert type(data) == bytes
@@ -52,11 +55,12 @@ def validate_content(data, content_type):
         schema = content_type.get("schema")
         # TODO: validate schema using frictionless?: where are resource schemata stored??
     else:
-        raise NotImplementedError(content_type["type"])
+        logging.error("NOT IMPLEMENTED: %s", content_type["type"])
     return data
 
 
 def encode_content(data, content_type):
+    # TODO: we don't need schema part of content_type
     content_type = parse_content_type(content_type)
     if content_type["type"] == "application/octet-stream":
         return data
@@ -66,10 +70,11 @@ def encode_content(data, content_type):
         ensure_ascii = not encoding.startswith("utf")
         return json.dumps(data, ensure_ascii=ensure_ascii).encode(encoding=encoding)
     else:
-        raise NotImplementedError(content_type["type"])
+        logging.error("NOT IMPLEMENTED: %s", content_type["type"])
 
 
 def decode_content(data, content_type):
+    # TODO: we don't need schema part of content_type
     content_type = parse_content_type(content_type)
     if content_type["type"] == "application/octet-stream":
         return data
@@ -77,7 +82,7 @@ def decode_content(data, content_type):
         encoding = content_type.get("charset", "utf-8").lower()
         return json.loads(data.decode(encoding=encoding))
     else:
-        raise NotImplementedError(content_type["type"])
+        logging.error("NOT IMPLEMENTED: %s", content_type["type"])
 
 
 def list_from_string_list(data, type):
@@ -291,13 +296,17 @@ def wsgi_serve_script(script_file):
 
 
 def get_api(remote=None):
-    from api import api as api_local
-    from client import api as api_remote
 
     if remote:
-        api = api_remote(remote)
+        import client
+
+        api = client.api(remote)
     else:
-        api = api_local  # you can also do api_local() to get an instance, but not required
+        import api
+
+        api = (
+            api.api
+        )  # you can also do api_local() to get an instance, but not required
     return api
 
 

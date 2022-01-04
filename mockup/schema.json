@@ -17,7 +17,7 @@
             },
             "input": {
                 "type": {
-                    "content": "application/json; charset=utf8; schema="
+                    "content": "application/json; charset=utf8; schema=inputSchema"
                 },
                 "name": "data",
                 "source": "a",
