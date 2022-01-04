@@ -131,9 +131,9 @@ class EndpointCli(Endpoint):
     @classmethod
     def get_code_wrap_arguments(cls, instance, param):
         if isinstance(param, (Input, Output)):
-            schema = param.type.content_params.get("schema")
-            if schema:
-                return '"%s"' % schema
+            content_type = param.type.content
+            if content_type:
+                return '"%s"' % content_type
             else:
                 return "None"
         else:

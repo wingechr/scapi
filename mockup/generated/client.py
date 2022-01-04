@@ -16,7 +16,7 @@ def api(remote="http://localhost:8000"):
                     data(object): desc
                     b(int): description
                     c(bool): desc
-                    d(list): desc
+                    d(list): List of int. desc
 
                 Returns:
                     object: desc
@@ -26,9 +26,14 @@ def api(remote="http://localhost:8000"):
                         method="POST",
                         url="%s/mod/fun/%s" % (remote, b),
                         params={"c": c, "d": d},
-                        data=utils.encode_content(data, None),
+                        data=utils.encode_content(
+                            data, "application/json; charset=utf8; schema="
+                        ),
+                        headers={
+                            "Content-Type": "application/json; charset=utf8; schema="
+                        },
                     ),
-                    "output_schema",
+                    "application/json; charset=utf8; schema=output_schema",
                 )
 
     return api

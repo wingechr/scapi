@@ -1,0 +1,93 @@
+{
+  "$schema": "./metaschema.json",
+  "endpoints": [
+    {
+      "arguments": [
+        {
+          "description": "description",
+          "name": "b",
+          "type": {
+            "type": "integer"
+          }
+        }
+      ],
+      "description": "Example description\nmultiline text",
+      "examples": [
+        {
+          "inputs": {
+            "b": 3,
+            "data": 2
+          },
+          "output": 6
+        },
+        {
+          "inputs": {
+            "b": 3,
+            "d": [
+              4,
+              1
+            ],
+            "data": 2
+          },
+          "output": 11
+        },
+        {
+          "inputs": {
+            "b": 3,
+            "c": true,
+            "d": [
+              4,
+              1
+            ],
+            "data": 2
+          },
+          "output": 506
+        }
+      ],
+      "input": {
+        "description": "desc",
+        "name": "data",
+        "source": "a",
+        "type": {
+          "content": "application/json; charset=utf8; schema="
+        }
+      },
+      "options": [
+        {
+          "description": "desc",
+          "name": "c",
+          "type": {
+            "type": "boolean"
+          }
+        },
+        {
+          "description": "desc",
+          "name": "d",
+          "type": {
+            "multiple": true,
+            "type": "integer"
+          }
+        }
+      ],
+      "output": {
+        "description": "desc",
+        "type": {
+          "content": "application/json; charset=utf8; schema=output_schema"
+        }
+      },
+      "path": [
+        "mod",
+        "fun"
+      ],
+      "source": {
+        "imports": [
+          "code"
+        ],
+        "path": [
+          "fun"
+        ]
+      }
+    }
+  ],
+  "version": "0.1.0"
+}

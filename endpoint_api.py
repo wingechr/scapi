@@ -29,6 +29,7 @@ class EndpointApi(Endpoint):
             IndentedCodeBlock(
                 "def api():",
                 None,
+                "# we put the imports inside the function so we don't import it when it's remote",
                 *[
                     "import %s" % i for i in cls.get_imports()
                 ],  # imports used by base code
@@ -61,10 +62,10 @@ class EndpointApi(Endpoint):
     @classmethod
     def get_code_wrap_arguments(cls, instance, param):
         if isinstance(param, (Input, Output)):
-            schema = param.type.content_params.get("schema")
-            if schema:
-                return '"%s"' % schema
+            content_type = param.type.content
+            if content_type:
+                return '"%s"' % content_type
             else:
                 return "None"
         else:
-            return '"%s"' % param.type.type
+            return param.type.python_type_validation

@@ -27,16 +27,20 @@ class Type:
         self.multiple = multiple
         self.content = content
 
-        self.content_params = dict()
+        self._content_params = dict()
         for idx, part in enumerate((self.content or "").split(";")):
             if idx == 0:
                 key, name = "type", part
             else:
                 key, name = part.split("=")
-            self.content_params[key.strip().lower()] = name.strip()
+            self._content_params[key.strip().lower()] = name.strip()
 
     def __str__(self):
         return self.click_repr
+
+    @property
+    def content_params(self):
+        return self._content_params
 
     @property
     def python_type_annotation(self):
@@ -49,14 +53,23 @@ class Type:
         return "None"
 
     @property
-    def python_type_validation(self):
-        if self.multiple:
-            return "list"
-        if self.content:
-            return "object"
+    def python_type_annotation_single(self):
         if self.type:
             return type_to_python_type[self.type]
+        if self.content:
+            return "object"
         return "None"
+
+    @property
+    def python_type_validation(self):
+        d = {}
+        if self.multiple:
+            d["type"] = "array"
+            d["items"] = {"type": self.type}
+        else:
+            d["type"] = self.type
+
+        return repr(d)
 
     @property
     def click_repr(self):
@@ -106,6 +119,10 @@ class Parameter:
         result = self.name
         result += "(" + self.type.python_type_annotation + ")"
         result += ":"  # always add the colon!
+        if self.type.multiple:
+            # also show types of elements
+            result += " List of %s." % self.type.python_type_annotation_single
+
         result += " " + self.description
         return result
 

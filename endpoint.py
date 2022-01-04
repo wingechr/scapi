@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 from collections import OrderedDict
 from code import CodeBlock, IndentedCodeBlock, CommaJoinedCodeBlock
-from utils import add_into_tree, iter_tree
+from build_utils import add_into_tree, iter_tree
 from classes import Source, Argument, Option, Input, Output
 
 
@@ -20,6 +20,7 @@ class Endpoint:
         output=None,
         http=None,
         description=None,
+        examples=None,
     ):
         self.description = description
         self.path = path

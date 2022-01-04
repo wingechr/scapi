@@ -1,15 +1,17 @@
 #!/usr/bin/env python3
+
 import os
 from typing import OrderedDict
 import click
 import shutil
 import jsonschema
-from utils import json_load, text_dump
+from build_utils import json_load, text_dump, json_dump
 from endpoint import Endpoint
 from endpoint_api import EndpointApi
 from endpoint_wsgi import EndpointWSGI
 from endpoint_client import EndpointClient
 from endpoint_cli import EndpointCli
+from copy import deepcopy
 
 
 @click.command()
@@ -33,6 +35,11 @@ def main(schema_json, output_path):
         if not name.endswith(".py"):
             continue
         shutil.copy(SRC_DIR + "/shared/" + name, output_path + "/" + name)
+    # save schema, set metaschema
+    json_dump(metaschema, output_path + "/metaschema.json")
+    schema_copy = deepcopy(schema)
+    schema_copy["$schema"] = "./metaschema.json"
+    json_dump(schema_copy, output_path + "/schema.json")
 
     # create endpoints
     _endpoints = [Endpoint(**ep) for ep in schema["endpoints"]]

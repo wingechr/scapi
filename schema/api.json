@@ -194,6 +194,19 @@
                     },
                     "description": {
                         "type": "string"
+                    },
+                    "examples": {
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "properties": {
+                                "inputs": {
+                                    "type": "object"
+                                },
+                                "output": {}
+                            }
+                        }
                     }
                 }
             }

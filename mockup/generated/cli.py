@@ -23,8 +23,13 @@ def main_mod_fun(ctx, data: object, b: int, c: bool = None, d: list = None) -> o
     """Example description
     multiline text"""
     return utils.encode_content(
-        ctx.obj.api.mod.fun(data=utils.decode_content(data, None), b=b, c=c, d=d),
-        "output_schema",
+        ctx.obj.api.mod.fun(
+            data=utils.decode_content(data, "application/json; charset=utf8; schema="),
+            b=b,
+            c=c,
+            d=d,
+        ),
+        "application/json; charset=utf8; schema=output_schema",
     )
 
 

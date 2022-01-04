@@ -31,10 +31,14 @@ class EndpointWSGI(Endpoint):
     def get_code_fun_decorators(cls, instance):
         path_args = ['"%s"' % p for p in instance.path_url]
         path_args += ['"(?P<%s>.+)"' % a.name for a in instance.arguments.values()]
-        input_str = '"%s"' % instance.input.name if instance.input else "None"
+        input_name = '"%s"' % instance.input.name if instance.input else None
+        output_content_type = (
+            '"%s"' % instance.output.type.content if instance.output else None
+        )
+
         return CodeBlock(
-            '@application.route("%s", [%s], %s)'
-            % (instance.http, ", ".join(path_args), input_str)
+            '@application.route("%s", [%s], input_name=%s, output_content_type=%s)'
+            % (instance.http, ", ".join(path_args), input_name, output_content_type)
         )
 
     @classmethod
@@ -91,9 +95,9 @@ class EndpointWSGI(Endpoint):
     @classmethod
     def get_code_wrap_arguments(cls, instance, param):
         if isinstance(param, (Input, Output)):
-            schema = param.type.content_params.get("schema")
-            if schema:
-                return '"%s"' % schema
+            content_type = param.type.content
+            if content_type:
+                return '"%s"' % content_type
             else:
                 return "None"
         else:

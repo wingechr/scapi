@@ -12,43 +12,72 @@ from wsgiref.simple_server import make_server
 
 import click
 import requests
+import jsonschema
 import coloredlogs
 
 
-def validate(data, type):
-    logging.debug("%s(%s) ? %s", data, data.__class__.__name__, type)
+BASE_DIR = os.path.dirname(__file__)
+
+
+def load_schema():
+    with open(BASE_DIR + "/schema.json", encoding="utf-8") as file:
+        schema = json.load(file)
+    return schema
+
+
+def validate(data, schema):
+    # TODO: allow None always?
+    if data is not None:
+        jsonschema.validate(data, schema)
     return data
 
 
-def validate_content(data, schema):
-    logging.debug("%s(%s) ? %s", data, data.__class__.__name__, schema)
+def parse_content_type(content_type):
+    result = dict()
+    for idx, part in enumerate(content_type.split(";")):
+        if idx == 0:
+            key, name = "type", part
+        else:
+            key, name = part.split("=")
+        result[key.strip().lower()] = name.strip()
+    return result
+
+
+def validate_content(data, content_type):
+    content_type = parse_content_type(content_type)
+    if content_type["type"] == "application/octet-stream":
+        assert type(data) == bytes
+    elif content_type["type"] == "application/json":
+        pass
+        schema = content_type.get("schema")
+        # TODO: validate schema using frictionless?: where are resource schemata stored??        
+    else:
+        raise NotImplementedError(content_type["type"])
     return data
 
 
-def encode_content(data, schema):
-    result = str(json.dumps(data, ensure_ascii=False)).encode()
-    logging.debug(
-        "%s(%s) -> %s = %s(%s)",
-        data,
-        data.__class__.__name__,
-        schema,
-        result,
-        result.__class__.__name__,
-    )
-    return result
+def encode_content(data, content_type):
+    content_type = parse_content_type(content_type)
+    if content_type["type"] == "application/octet-stream":
+        return data
+    elif content_type["type"] == "application/json":
+        encoding = content_type.get("charset", "utf-8").lower()
+        # if not utf-8: better ensure ascii
+        ensure_ascii = not encoding.startswith("utf")
+        return json.dumps(data, ensure_ascii=ensure_ascii).encode(encoding=encoding)
+    else:
+        raise NotImplementedError(content_type["type"])
 
 
-def decode_content(data, schema):
-    result = json.loads(data.decode())
-    logging.debug(
-        "%s(%s) -> %s = %s(%s)",
-        data,
-        data.__class__.__name__,
-        schema,
-        result,
-        result.__class__.__name__,
-    )
-    return result
+def decode_content(data, content_type):
+    content_type = parse_content_type(content_type)
+    if content_type["type"] == "application/octet-stream":
+        return data
+    elif content_type["type"] == "application/json":
+        encoding = content_type.get("charset", "utf-8").lower()
+        return json.loads(data.decode(encoding=encoding))
+    else:
+        raise NotImplementedError(content_type["type"])
 
 
 def list_from_string_list(data, type):
@@ -77,14 +106,6 @@ def from_string(data, type):
         result = click.types.BOOL.convert(data, None, None)
     else:
         result = data
-    logging.debug(
-        "%s(%s) -> %s = %s(%s)",
-        data,
-        data.__class__.__name__,
-        type,
-        result,
-        result.__class__.__name__,
-    )
     return result
 
 
@@ -99,6 +120,7 @@ class WSGIHandler:
 
     def __init__(self, api):
         self.api = api
+        logging.debug("Connect handler to api")
 
     def __call__(self, environ, start_response):
         method = environ["REQUEST_METHOD"].upper()
@@ -124,11 +146,14 @@ class WSGIHandler:
             }
         )
 
+        # todo: compare content_type with expected content_type?
+
         method_implies_data = method in ("POST", "PATCH", "PUT")
         assert bool(method_implies_data) == bool(content_length)
 
-        handler, path_arguments, input_name = self.get_handler(path, method)
+        handler, path_arguments, attributes = self.get_handler(path, method)
         query.update(path_arguments)
+        input_name = attributes.get("input_name")
 
         assert bool(input_name) == bool(content_length)
 
@@ -142,14 +167,15 @@ class WSGIHandler:
         result = handler(**query) or b""
 
         status = self.get_status_str(200)
+        output_content_type = attributes.get("output_content_type")
         response_headers = [
-            ("Content-type", "text/plain"),
+            ("Content-type", output_content_type),
             ("Content-Length", str(len(result))),
         ]
         start_response(status, response_headers)
         return [result]
 
-    def route(self, method, path, input_name=None):
+    def route(self, method, path, **attributes):
         def register(handler):
             logging.info("register %s %s", method, path)
             tree = self.routes[method]
@@ -164,7 +190,7 @@ class WSGIHandler:
             #    raise Exception((method, path, tree))
 
             tree["handler"] = handler
-            tree["input_name"] = input_name
+            tree["attributes"] = attributes
 
             return handler
 
@@ -186,9 +212,9 @@ class WSGIHandler:
                 raise Exception((method, path))
             path_arguments.update(match.groupdict())
         handler = tree["handler"]
-        input_name = tree["input_name"]
+        attributes = tree["attributes"]
 
-        return handler, path_arguments, input_name
+        return handler, path_arguments, attributes
 
     @staticmethod
     def get_status_str(code):
@@ -213,8 +239,10 @@ def input_stdin(fun):
     return decorated_function
 
 
-def request(method, url, params=None, data=None):
-    res = requests.request(method, url, params=params, data=data)
+def request(method, url, params=None, data=None, headers=None):
+    res = requests.request(method, url, params=params, data=data, headers=headers)
+    # todo compare expected with recieved content type?
+    logging.debug(res.headers)
     res.raise_for_status()
     return res.content
 
@@ -228,7 +256,13 @@ def import_filepath(filepath, name=None):
     return mod
 
 
-def wsgi_serve(wsgi_script):
+def wsgi_serve(port, application):
+    with make_server("", port, application) as server:
+        logging.info("Serving on port %d", port)
+        server.serve_forever()
+
+
+def wsgi_serve_script(script_file):
     @click.command()
     @click.option(
         "--loglevel",
@@ -247,10 +281,11 @@ def wsgi_serve(wsgi_script):
             loglevel = getattr(logging, loglevel.upper())
             coloredlogs.install(level=loglevel)
 
-        wsgi_mod = import_filepath(wsgi_script)
-        with make_server("", port, wsgi_mod.application) as server:
-            logging.info("Serving on port %d", port)
-            server.serve_forever()
+        logging.debug("loading wsgi script from %s", script_file)
+        wsgi_mod = import_filepath(script_file)
+        application = wsgi_mod.application
+
+        wsgi_serve(port, application)
 
     main()
 
