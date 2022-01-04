@@ -7,6 +7,7 @@ type_to_python_type = {
     "integer": "int",
     "number": "float",
     "bytes": "bytes",
+    "object": "object",
 }
 type_to_click_type = {
     "boolean": "BOOL",
@@ -130,24 +131,24 @@ class Parameter:
     def click_help(self):
         return self.description.replace("\n", " ")
 
-    def _copy(self):
+    def as_bytes(self):
         copy = deepcopy(self)
+        copy.type = Type(type="bytes")
         return copy
 
-    def get_for_source_function(self):
-        copy = self._copy()
+    def as_string(self):
+        copy = deepcopy(self)
+        copy.type = Type(type="string")
+        return copy
+
+    def as_string_array(self):
+        copy = deepcopy(self)
+        copy.type = Type(type="string", multiple=True)
+        return copy
+
+    def as_source(self):
+        copy = deepcopy(self)
         copy.name = copy.source
-        return copy
-
-    def get_for_wsgi_function(self):
-        copy = self._copy()
-        if isinstance(self, (Input, Output)):
-            copy.type = Type(type="bytes")
-        elif isinstance(self, Option):
-            copy.type = Type(type="string", multiple=True)
-        else:
-            copy.type = Type(type="string")
-        return copy
 
 
 class Argument(Parameter):

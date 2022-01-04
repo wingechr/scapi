@@ -2,16 +2,35 @@
 from copy import deepcopy
 from code import CodeBlock, IndentedCodeBlock, CommaJoinedCodeBlock
 from endpoint import Endpoint
+from endpoint_api import EndpointApi
 from classes import Option, Output, Input, Argument, Type
 
 
 class EndpointWSGI(Endpoint):
+    @classmethod
+    def get_signature_parameters(cls, instance):
+        params = []
+        for p in super().get_signature_parameters(instance):
+            if isinstance(p, Input):
+                p = p.as_bytes()
+            elif isinstance(p, Argument):
+                p = p.as_string()
+            elif isinstance(p, Option):
+                p = p.as_string_array()
+            params.append(p)
+        return params
+
+    @classmethod
+    def get_signature_output(cls, instance):
+        if instance.output:
+            return instance.output.as_bytes()
+
     # ---------------------------
     # code generation
     # ---------------------------
 
     @classmethod
-    def get_code_main_wrapper(cls, code_main):
+    def get_code(cls):
         return CodeBlock(
             "import logging",
             "import utils",
@@ -20,12 +39,82 @@ class EndpointWSGI(Endpoint):
             None,
             "application = utils.WSGIHandler(utils.get_api())",
             None,
-            code_main,
+            cls.get_code_instances(),
             None,
             IndentedCodeBlock(
                 'if __name__ == "__main__":', "utils.wsgi_serve_script(__file__)"
             ),
         )
+
+    @classmethod
+    def get_code_group(cls, elements, path):
+        return CodeBlock(*elements)
+
+    @classmethod
+    def get_code_instance(cls, instance, path):
+
+        path_args = ['"%s"' % p for p in cls.get_url_path(instance)]
+        input_name = '"%s"' % instance.input.name if instance.input else None
+        output_content_type = (
+            '"%s"' % instance.output.type.content if instance.output else None
+        )
+        route = (
+            '@application.route("%s", [%s], input_name=%s, output_content_type=%s)'
+            % (instance.http, ", ".join(path_args), input_name, output_content_type)
+        )
+
+        fun_name = ".".join(["application", "api"] + instance.path)
+
+        parameters_src = cls.get_signature_parameters(instance)
+        parameters_tgt = EndpointApi.get_signature_parameters(instance)
+        assert len(parameters_src) == len(parameters_tgt)
+
+        param_strs = []
+        for pt, ps in zip(parameters_tgt, parameters_src):
+            if isinstance(pt, Input):
+                param_strs.append(
+                    '%s=utils.decode_content(%s, "%s")'
+                    % (pt.name, ps.name, pt.type.content)
+                )
+            elif isinstance(pt, Option):
+                if pt.type.multiple:
+                    param_strs.append(
+                        '%s=utils.list_from_string_list(%s, "%s")'
+                        % (pt.name, ps.name, pt.type.type)
+                    )
+                else:
+                    param_strs.append(
+                        '%s=utils.single_from_string_list(%s, "%s")'
+                        % (pt.name, ps.name, pt.type.type)
+                    )
+            else:
+                param_strs.append(
+                    '%s=utils.from_string(%s, "%s")' % (pt.name, ps.name, pt.type.type)
+                )
+
+        output_tgt = EndpointApi.get_signature_output(instance)
+
+        return CodeBlock(
+            route,
+            IndentedCodeBlock(
+                super().get_code_fun_signature(instance),
+                cls.get_code_fun_docstring(instance),
+                cls.wrap_function(
+                    IndentedCodeBlock(
+                        fun_name + "(",
+                        CommaJoinedCodeBlock(*param_strs),
+                        footer=")",
+                    ),
+                    output_tgt,
+                    "utils.encode_content",
+                ),
+            ),
+            None,
+        )
+
+    @classmethod
+    def get_code_fun_name(cls, instance):
+        return "route_" + instance.name_long
 
     @classmethod
     def get_code_fun_docstring(cls, instance):
@@ -51,76 +140,3 @@ class EndpointWSGI(Endpoint):
         path_args = ["%s" % p for p in instance.path_url]
         path_args += ["(?P<%s>[^/?]+)" % a.name for a in instance.arguments.values()]
         return path_args
-
-    @classmethod
-    def get_code_fun_decorators(cls, instance):
-        path_args = ['"%s"' % p for p in cls.get_url_path(instance)]
-        input_name = '"%s"' % instance.input.name if instance.input else None
-        output_content_type = (
-            '"%s"' % instance.output.type.content if instance.output else None
-        )
-
-        return CodeBlock(
-            '@application.route("%s", [%s], input_name=%s, output_content_type=%s)'
-            % (instance.http, ", ".join(path_args), input_name, output_content_type)
-        )
-
-    @classmethod
-    def get_code_fun_name(cls, instance):
-        return "route_" + instance.name_long
-
-    @classmethod
-    def get_code_source_fun_name(cls, instance):
-        return ".".join(["application", "api"] + instance.path)
-
-    @classmethod
-    def get_code_params(cls, instance):
-        params = []
-        for p in super().get_code_params(instance):
-            params.append(p)
-        return params
-
-    @classmethod
-    def get_code_fun_body_call_params(cls, instance) -> list:
-        return super().get_code_fun_body_call_params(instance)
-
-    @classmethod
-    def get_code_output(cls, instance):
-        output = instance.output
-        if not output:
-            return None
-        output = instance.output.get_for_wsgi_function()
-        return output
-
-    @classmethod
-    def get_code_wrap_function(cls, instance, param):
-        if isinstance(param, Input):
-            return "utils.decode_content"
-        elif isinstance(param, Output):
-            return "utils.encode_content"
-        elif isinstance(param, Option):
-            if param.type.multiple:
-                return "utils.list_from_string_list"
-            else:
-                return "utils.single_from_string_list"
-        else:
-            return "utils.from_string"
-
-    @classmethod
-    def get_code_wrap_arguments(cls, instance, param):
-        if isinstance(param, (Input, Output)):
-            content_type = param.type.content
-            if content_type:
-                return '"%s"' % content_type
-            else:
-                return "None"
-        else:
-            return '"%s"' % param.type.type
-
-    @classmethod
-    def get_code_params(cls, instance):
-        return [p.get_for_wsgi_function() for p in super().get_code_params(instance)]
-
-    @classmethod
-    def get_code_call_params(cls, instance):
-        return super().get_code_params(instance)

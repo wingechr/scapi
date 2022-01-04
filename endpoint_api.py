@@ -2,7 +2,6 @@
 
 from code import CodeBlock, IndentedCodeBlock, CommaJoinedCodeBlock
 from endpoint import Endpoint
-from endpoint_wsgi import EndpointWSGI
 from classes import Input, Output
 
 
@@ -19,7 +18,7 @@ class EndpointApi(Endpoint):
     # ------------------------------------
 
     @classmethod
-    def get_code_main_wrapper(cls, code_main):
+    def get_code(cls):
         return CodeBlock(
             "import logging",
             "import utils",
@@ -29,7 +28,7 @@ class EndpointApi(Endpoint):
             None,
             "# imports of external code",
             *["import %s" % i for i in cls.get_imports()],  # imports used by base code
-            code_main
+            IndentedCodeBlock(cls.get_code_instances())
         )
 
     @classmethod
@@ -42,21 +41,53 @@ class EndpointApi(Endpoint):
         return CodeBlock(None, IndentedCodeBlock("class %s:" % name, *elements))
 
     @classmethod
-    def get_code_fun_decorators(cls, instance):
-        return CodeBlock("@staticmethod")
+    def get_code_instance(cls, instance, path):
 
-    @classmethod
-    def get_code_wrap_function(cls, instance, param):
-        if isinstance(param, (Input, Output)):
-            return "utils.validate_content"
-        else:
-            return "utils.validate"
+        fun_name = ".".join(instance.source.imports + instance.source.path)
+        parameters_src = cls.get_signature_parameters(instance)
+        output = cls.get_signature_output(instance)
+
+        param_strs = []
+        for p in parameters_src:
+            if isinstance(p, Input):
+                param_strs.append(
+                    '%s=%s(%s, "%s")'
+                    % (p.source, "utils.validate_content", p.name, p.type.content)
+                )
+            else:
+                param_strs.append(
+                    "%s=%s(%s, %s)"
+                    % (
+                        p.source,
+                        "utils.validate",
+                        p.name,
+                        p.type.python_type_validation,
+                    )
+                )
+
+        return CodeBlock(
+            "@staticmethod",
+            IndentedCodeBlock(
+                super().get_code_fun_signature(instance),
+                cls.get_code_fun_docstring(instance),
+                cls.wrap_function(
+                    IndentedCodeBlock(
+                        fun_name + "(",
+                        CommaJoinedCodeBlock(*param_strs),
+                        footer=")",
+                    ),
+                    output,
+                    "utils.validate_content",
+                ),
+            ),
+            None,
+        )
 
     @classmethod
     def get_code_fun_docstring(cls, instance):
         result = CodeBlock('"""%s' % instance.description)
-        params = cls.get_code_params(instance)
-        output = cls.get_code_output(instance)
+        params = cls.get_signature_parameters(instance)
+        output = cls.get_signature_output(instance)
 
         if params:
             result += None
@@ -69,18 +100,3 @@ class EndpointApi(Endpoint):
 
         result += '"""'
         return result
-
-    @classmethod
-    def get_code_wrap_arguments(cls, instance, param):
-        if isinstance(param, (Input, Output)):
-            content_type = param.type.content
-            if content_type:
-                return '"%s"' % content_type
-            else:
-                return "None"
-        else:
-            return param.type.python_type_validation
-
-    @classmethod
-    def get_code_call_params(cls, instance):
-        return [p.get_for_source_function() for p in cls.get_code_params(instance)]

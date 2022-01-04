@@ -13,7 +13,7 @@ class EndpointClient(EndpointApi):
     # ------------------------------------
 
     @classmethod
-    def get_code_main_wrapper(cls, code_main):
+    def get_code(cls):
         return CodeBlock(
             "import logging",
             "import utils",
@@ -23,18 +23,15 @@ class EndpointClient(EndpointApi):
             None,
             IndentedCodeBlock(
                 'def api(remote="http://localhost:8000"):',
-                code_main,
+                cls.get_code_instances(),
                 None,
                 "return api",
             ),
         )
 
     @classmethod
-    def get_code_source_fun_name(cls, instance):
-        return "utils.request"
+    def get_code_instance(cls, instance, path):
 
-    @classmethod
-    def get_code_fun_body_call_params(cls, instance) -> list:
         params = [("method", '"%s"' % instance.http)]
 
         if instance.arguments:
@@ -62,30 +59,29 @@ class EndpointClient(EndpointApi):
             )
         if instance.input:
             p = instance.input
-            wrap_fun = cls.get_code_wrap_function(instance, p)
-            wrap_args = ", " + cls.get_code_wrap_arguments(instance, p)
-            line = "%s(%s%s)" % (wrap_fun, p.name, wrap_args)
+            line = 'utils.encode_content(%s, "%s")' % (
+                p.name,
+                instance.input.type.content,
+            )
             params.append(("data", line))
             params.append(("content_type", '"%s"' % instance.input.type.content))
 
-        return ["%s=%s" % p for p in params]
+        params = ["%s=%s" % p for p in params]
 
-    @classmethod
-    def get_code_wrap_function(cls, instance, param):
-        if isinstance(param, Input):
-            return "utils.encode_content"
-        elif isinstance(param, Output):
-            return "utils.decode_content"
-        else:
-            return ""  # requests does the encoding
+        output = cls.get_signature_output(instance)
 
-    @classmethod
-    def get_code_wrap_arguments(cls, instance, param):
-        if isinstance(param, (Input, Output)):
-            content_type = param.type.content
-            if content_type:
-                return '"%s"' % content_type
-            else:
-                return "None"
-        else:
-            return ""  # requests does the encoding
+        return CodeBlock(
+            "@staticmethod",
+            IndentedCodeBlock(
+                super().get_code_fun_signature(instance),
+                cls.get_code_fun_docstring(instance),
+                cls.wrap_function(
+                    IndentedCodeBlock(
+                        "utils.request(", CommaJoinedCodeBlock(*params), footer=")"
+                    ),
+                    output,
+                    "utils.decode_content",
+                ),
+            ),
+            None,
+        )

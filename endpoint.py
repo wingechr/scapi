@@ -63,80 +63,8 @@ class Endpoint:
             path = self.path[:]
         return path
 
-    # ---------------------------
-    # code generation
-    # ---------------------------
-
     @classmethod
-    def get_code(cls):
-        return cls.get_code_main_wrapper(cls.get_code_instances())
-
-    @classmethod
-    def get_code_main_wrapper(cls, code_main):
-        return code_main
-
-    @classmethod
-    def get_code_instances(cls, path=None):
-        return iter_tree(
-            cls._tree, cls.get_code_group, cls.get_code_instance, path=path
-        )
-
-    @classmethod
-    def get_code_group(cls, elements, path):
-        return CodeBlock(*elements)
-
-    @classmethod
-    def get_code_instance(cls, instance, path):
-        return CodeBlock(
-            None,
-            IndentedCodeBlock(
-                CodeBlock(
-                    cls.get_code_fun_decorators(instance),
-                    cls.get_code_fun_signature(instance),
-                ),
-                cls.get_code_fun_docstring(instance),
-                cls.get_code_fun_body(instance),
-            ),
-        )
-
-    @classmethod
-    def get_code_fun_decorators(cls, instance):
-        return CodeBlock()
-
-    @classmethod
-    def get_code_fun_name(cls, instance):
-        return instance.name_short
-
-    @classmethod
-    def get_code_fun_signature(cls, instance):
-        return "def %s(%s) -> %s:" % (
-            cls.get_code_fun_name(instance),
-            ", ".join(cls.get_code_fun_def_params(instance)),
-            cls.get_code_fun_annotation(instance),
-        )
-
-    @classmethod
-    def get_code_fun_docstring(cls, instance):
-        return CodeBlock('"""%s"""' % instance.description)
-
-    @classmethod
-    def get_code_source_fun_name(cls, instance):
-        return ".".join(instance.source.imports + instance.source.path)
-
-    @classmethod
-    def get_code_fun_def_params(cls, instance) -> list:
-        return [p.get_code_fun_def() for p in cls.get_code_params(instance)]
-
-    @classmethod
-    def get_code_fun_annotation(cls, instance):
-        output = cls.get_code_output(instance)
-        if output:
-            return output.type.python_type_annotation
-        else:
-            return "None"
-
-    @classmethod
-    def get_code_params(cls, instance):
+    def get_signature_parameters(cls, instance):
         params = []
         if instance.input:
             params.append(instance.input)
@@ -147,61 +75,55 @@ class Endpoint:
         return params
 
     @classmethod
-    def get_code_call_params(cls, instance):
-        return cls.get_code_params(instance)
-
-    @classmethod
-    def get_code_output(cls, instance):
+    def get_signature_output(cls, instance):
         return instance.output
 
-    @classmethod
-    def get_code_fun_body(cls, instance):
-        result = cls.get_code_fun_body_call(instance)
-        if instance.output:
-            wrap_fun = cls.get_code_wrap_function(instance, instance.output)
-            if wrap_fun:
-                wrap_args = cls.get_code_wrap_arguments(instance, instance.output) or ""
-                if wrap_args:
-                    wrap_args = "," + wrap_args
-                result = IndentedCodeBlock(
-                    "return %s(" % wrap_fun, result, wrap_args, footer=")"
-                )
-            else:
-                result = IndentedCodeBlock("return (", result, footer=")")
-
-        return result
+    # ---------------------------
+    # code generation
+    # ---------------------------
 
     @classmethod
-    def get_code_fun_body_call_params(cls, instance) -> list:
-        params = cls.get_code_params(instance)
-        call_params = cls.get_code_call_params(instance)
-
-        lines = []
-        for p, cp in zip(params, call_params):
-            wrap_fun = cls.get_code_wrap_function(instance, cp)
-            if wrap_fun:
-                wrap_args = cls.get_code_wrap_arguments(instance, cp) or ""
-                if wrap_args:
-                    wrap_args = ", " + wrap_args
-                line = "%s=%s(%s%s)" % (cp.name, wrap_fun, p.name, wrap_args)
-            else:
-                line = "%s=%s" % (cp.name, p.name)
-
-            lines.append(line)
-
-        return lines
+    def get_code_instances(cls, path=None):
+        return iter_tree(
+            cls._tree, cls.get_code_group, cls.get_code_instance, path=path
+        )
 
     @classmethod
-    def get_code_wrap_function(cls, instance, param):
-        return ""
+    def get_code(cls):
+        raise NotImplementedError
 
     @classmethod
-    def get_code_wrap_arguments(cls, instance, param):
-        return ""
+    def get_code_group(cls, elements, path):
+        raise NotImplementedError
 
     @classmethod
-    def get_code_fun_body_call(cls, instance):
-        fun_name = cls.get_code_source_fun_name(instance)
-        params_code = CommaJoinedCodeBlock(*cls.get_code_fun_body_call_params(instance))
-        result = IndentedCodeBlock(fun_name + "(", params_code, footer=")")
-        return result
+    def get_code_instance(cls, instance, path):
+        raise NotImplementedError
+
+    @classmethod
+    def get_code_fun_name(cls, instance):
+        return instance.name_short
+
+    @classmethod
+    def get_code_fun_signature(cls, instance):
+        name = cls.get_code_fun_name(instance)
+        params = cls.get_signature_parameters(instance)
+        output = cls.get_signature_output(instance)
+        return "def %s(%s) -> %s:" % (
+            name,
+            ", ".join(p.get_code_fun_def() for p in params),
+            output.type.python_type_annotation if output else "None",
+        )
+
+    @staticmethod
+    def wrap_function(code, output, wrap_fun=None):
+        if not output:
+            return code
+        if not wrap_fun:
+            return IndentedCodeBlock("return (", code, footer=")")
+        else:
+            schema = '"%s"' % output.type.content if output.type.content else "None"
+            return IndentedCodeBlock(
+                "return %s(" % wrap_fun, code, footer=", %s)" % schema
+            )
+        return code
