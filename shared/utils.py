@@ -183,18 +183,27 @@ class WSGIHandler:
             query[input_name] = data
 
         result = handler(**query) or b""
+        content_length_result = len(result)
 
         # TODO get other success codes
         status = self.get_status_str(200)
         output_content_type = attributes.get("output_content_type")
 
+        assert bool(output_content_type) == bool(content_length_result)
+
         response_messages = [{"level": "DEBUG", "data": "test"}]
 
-        response_headers = [
-            ("Content-type", output_content_type),
-            ("Content-Length", str(len(result))),
-            ("Messages", json.dumps(response_messages, ensure_ascii=True)),
-        ]
+        response_headers = []
+        if output_content_type:
+            response_headers += [
+                ("Content-type", output_content_type),
+                ("Content-Length", str(content_length_result)),
+            ]
+
+        response_headers.append(
+            ("Messages", json.dumps(response_messages, ensure_ascii=True))
+        )
+
         start_response(status, response_headers)
         return [result]
 
@@ -273,7 +282,7 @@ def request(method, url, params=None, data=None, content_type=None):
     res = requests.request(method, url, params=params, data=data, headers=headers)
     # todo compare expected with recieved content type?
 
-    content_type = res.headers["content-type"]  # case insensitive dict
+    content_type_resp = res.headers.get("content-type")  # case insensitive dict
     response_messages = res.headers.get("messages")
     if response_messages:
         response_messages = json.loads(response_messages)

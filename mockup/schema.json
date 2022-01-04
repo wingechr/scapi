@@ -56,17 +56,35 @@
                 "description": "desc"
             },
             "description": "Example description\nmultiline text",
-            "examples":[
+            "examples": [
                 {
-                    "inputs": {"data": 2, "b": 3},
+                    "inputs": {
+                        "data": 2,
+                        "b": 3
+                    },
                     "output": 6
                 },
                 {
-                    "inputs": {"data": 2, "b": 3, "d": [4, 1]},
+                    "inputs": {
+                        "data": 2,
+                        "b": 3,
+                        "d": [
+                            4,
+                            1
+                        ]
+                    },
                     "output": 11
                 },
                 {
-                    "inputs": {"data": 2, "b": 3, "c": true, "d": [4, 1]},
+                    "inputs": {
+                        "data": 2,
+                        "b": 3,
+                        "c": true,
+                        "d": [
+                            4,
+                            1
+                        ]
+                    },
                     "output": 506
                 }
             ],
@@ -82,9 +100,9 @@
                     "mycode"
                 ],
                 "path": [
-                    "fun"
+                    "fun2"
                 ]
-            },           
+            },
             "arguments": [
                 {
                     "name": "b",
@@ -110,8 +128,8 @@
                     },
                     "description": "desc"
                 }
-            ],            
-            "description": "Example description\nmultiline text",            
+            ],
+            "description": "Example description 2222",
             "authorization": false
         }
     ]

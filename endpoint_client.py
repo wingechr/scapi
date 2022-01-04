@@ -2,6 +2,7 @@
 from collections import OrderedDict
 from code import CodeBlock, IndentedCodeBlock, CommaJoinedCodeBlock
 from endpoint_api import EndpointApi, Endpoint
+from endpoint_wsgi import EndpointWSGI
 from classes import Input, Output
 
 
@@ -29,20 +30,28 @@ class EndpointClient(EndpointApi):
             ),
         )
 
+        # create URL
+        url_pattern = "/".join(cls.get_url_path(instance))
+        result += CodeBlock(
+            None,
+        )
+
     @classmethod
     def get_code_instance(cls, instance, path):
 
         params = [("method", '"%s"' % instance.http)]
 
+        url = '"%s/' + "/".join(instance.path_url)
         if instance.arguments:
             placeholders = ""
             variables = ""
             for a in instance.arguments.values():
                 placeholders += "/%s"
                 variables += ", " + a.name
-            url = '"%s/mod/fun' + placeholders + '" % (remote' + variables + ")"
+            url += placeholders + '" % (remote' + variables + ")"
         else:
-            url = '"%s/mod/fun/%s" % remote'
+            url += '" % remote'
+
         params.append(("url", url))
 
         if instance.options:

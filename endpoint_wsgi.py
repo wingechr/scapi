@@ -53,11 +53,11 @@ class EndpointWSGI(Endpoint):
     @classmethod
     def get_code_instance(cls, instance, path):
 
+        output_tgt = EndpointApi.get_signature_output(instance)
         path_args = ['"%s"' % p for p in cls.get_url_path(instance)]
         input_name = '"%s"' % instance.input.name if instance.input else None
-        output_content_type = (
-            '"%s"' % instance.output.type.content if instance.output else None
-        )
+        # msut not be empty
+        output_content_type = '"%s"' % output_tgt.type.content if output_tgt else "None"
         route = (
             '@application.route("%s", [%s], input_name=%s, output_content_type=%s)'
             % (instance.http, ", ".join(path_args), input_name, output_content_type)
@@ -91,8 +91,6 @@ class EndpointWSGI(Endpoint):
                 param_strs.append(
                     '%s=utils.from_string(%s, "%s")' % (pt.name, ps.name, pt.type.type)
                 )
-
-        output_tgt = EndpointApi.get_signature_output(instance)
 
         return CodeBlock(
             route,
