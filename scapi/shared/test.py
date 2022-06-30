@@ -1,21 +1,19 @@
 # coding: utf-8
-import unittest
 import logging
+import socket
 import threading
 import time
-import socket
-import json
-import os
+import unittest
 from functools import partial
+
+import utils
+from api import api as api_local
+from client import api as api_remote
+from wsgi import application
 
 logging.basicConfig(
     format="[%(asctime)s %(levelname)7s] %(message)s", level=logging.DEBUG
 )
-
-from wsgi import application
-from client import api as api_remote
-from api import api as api_local
-import utils
 
 
 class TestTemplate(unittest.TestCase):
@@ -29,7 +27,7 @@ class TestTemplate(unittest.TestCase):
         target = partial(utils.wsgi_serve, port, application)
         server_thread = threading.Thread(target=target, daemon=True)
         server_thread.start()
-        time.sleep(1)  #  give server a little time to startup
+        time.sleep(1)  # give server a little time to startup
         cls.api_remote = api_remote("http://localhost:%d" % port)
         cls.api_local = api_local()
         cls.schema = utils.load_schema()
@@ -70,3 +68,7 @@ class TestTemplate(unittest.TestCase):
                 )
                 output_remote = callable_remote(**inputs)
                 self.assertEqual(output_remote, expected_output)
+
+
+if __name__ == "__main__":
+    unittest.main()

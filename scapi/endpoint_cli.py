@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 
-from code import CodeBlock, IndentedCodeBlock, CommaJoinedCodeBlock
-from classes import Input, Option, Argument, Output
-from endpoint import Endpoint
-from endpoint_api import EndpointApi
+from .classes import Argument, Input
+from .code import CodeBlock, CommaJoinedCodeBlock, IndentedCodeBlock
+from .endpoint import Endpoint
+from .endpoint_api import EndpointApi
 
 
 class EndpointCli(Endpoint):

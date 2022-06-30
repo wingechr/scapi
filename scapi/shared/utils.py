@@ -1,20 +1,19 @@
-import sys
-import re
-import json
-import os
-import importlib
 import functools
-from types import SimpleNamespace
+import importlib
+import json
 import logging
+import os
+import re
+import sys
 from http import HTTPStatus
+from types import SimpleNamespace
 from urllib.parse import parse_qs
 from wsgiref.simple_server import make_server
 
 import click
-import requests
-import jsonschema
 import coloredlogs
-
+import jsonschema
+import requests
 
 BASE_DIR = os.path.dirname(__file__)
 
@@ -57,8 +56,9 @@ def validate_content(data, content_type):
         assert type(data) == bytes
     elif content_type["type"] == "application/json":
         pass
-        schema = content_type.get("schema")
-        # TODO: validate schema using frictionless?: where are resource schemata stored??
+        # schema = content_type.get("schema")
+        # TODO: validate schema using frictionless?:
+        # where are resource schemata stored??
     else:
         logging.error("NOT IMPLEMENTED: %s", content_type["type"])
     return data
@@ -175,11 +175,11 @@ class WSGIHandler:
 
         assert bool(input_name) == bool(content_length)
 
-        content_length_actual = None
+        # content_length_actual = None
         if input_name:
             input = environ["wsgi.input"]
             data = input.read(content_length)
-            content_length_actual = len(data)
+            # content_length_actual = len(data)
             query[input_name] = data
 
         result = handler(**query) or b""
@@ -282,7 +282,7 @@ def request(method, url, params=None, data=None, content_type=None):
     res = requests.request(method, url, params=params, data=data, headers=headers)
     # todo compare expected with recieved content type?
 
-    content_type_resp = res.headers.get("content-type")  # case insensitive dict
+    # content_type_resp = res.headers.get("content-type")
     response_messages = res.headers.get("messages")
     if response_messages:
         response_messages = json.loads(response_messages)

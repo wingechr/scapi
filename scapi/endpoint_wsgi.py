@@ -1,9 +1,8 @@
 #!/usr/bin/env python3
-from copy import deepcopy
-from code import CodeBlock, IndentedCodeBlock, CommaJoinedCodeBlock
-from endpoint import Endpoint
-from endpoint_api import EndpointApi
-from classes import Option, Output, Input, Argument, Type
+from .classes import Argument, Input, Option
+from .code import CodeBlock, CommaJoinedCodeBlock, IndentedCodeBlock
+from .endpoint import Endpoint
+from .endpoint_api import EndpointApi
 
 
 class EndpointWSGI(Endpoint):

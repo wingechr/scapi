@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 
-from code import CodeBlock, IndentedCodeBlock, CommaJoinedCodeBlock
-from endpoint import Endpoint
-from classes import Input, Output
+from .classes import Input
+from .code import CodeBlock, CommaJoinedCodeBlock, IndentedCodeBlock
+from .endpoint import Endpoint
 
 
 class EndpointApi(Endpoint):

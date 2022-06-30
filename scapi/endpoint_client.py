@@ -1,9 +1,6 @@
 #!/usr/bin/env python3
-from collections import OrderedDict
-from code import CodeBlock, IndentedCodeBlock, CommaJoinedCodeBlock
-from endpoint_api import EndpointApi, Endpoint
-from endpoint_wsgi import EndpointWSGI
-from classes import Input, Output
+from .code import CodeBlock, CommaJoinedCodeBlock, IndentedCodeBlock
+from .endpoint_api import Endpoint, EndpointApi
 
 
 class EndpointClient(EndpointApi):
@@ -28,12 +25,6 @@ class EndpointClient(EndpointApi):
                 None,
                 "return api",
             ),
-        )
-
-        # create URL
-        url_pattern = "/".join(cls.get_url_path(instance))
-        result += CodeBlock(
-            None,
         )
 
     @classmethod

@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 from collections import OrderedDict
-from code import CodeBlock, IndentedCodeBlock, CommaJoinedCodeBlock
-from build_utils import add_into_tree, iter_tree
-from classes import Source, Argument, Option, Input, Output
+
+from .build_utils import add_into_tree, iter_tree
+from .classes import Argument, Input, Option, Output, Source
+from .code import IndentedCodeBlock
 
 
 class Endpoint:

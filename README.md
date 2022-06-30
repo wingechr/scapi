@@ -7,53 +7,54 @@ The json descriptor can be validated from a provided json schema file.
 
 The api layers are:
 
-* 1: **api**:
-    wrapper functions around exising sources that validate inputs and output and 
-    clean documentation
+- 1: **api**:
+  wrapper functions around exising sources that validate inputs and output and
+  clean documentation
 
-* 2: **wsgi**:
-    wsgi script that translates the api to http calls
+- 2: **wsgi**:
+  wsgi script that translates the api to http calls
 
-* 3: **client**:
-    python (later: maybe also javascript) client with the same interface as the level 1
-    api, that translates the calls into http requests and communicates with layer 2.
+- 3: **client**:
+  python (later: maybe also javascript) client with the same interface as the level 1
+  api, that translates the calls into http requests and communicates with layer 2.
 
-* 4: **cli**:
-    command line interface that wraps around layer 3 or 1 (because they have the same interface).
+- 4: **cli**:
+  command line interface that wraps around layer 3 or 1 (because they have the same interface).
 
 The build tool:
 
-* validates the json descriptor
-* creates a python package with a module for each of the layers
-* creates documentation for the layers
-* can run some basic tests provided as examples in the descriptor
-* copies a utility module
+- validates the json descriptor
+- creates a python package with a module for each of the layers
+- creates documentation for the layers
+- can run some basic tests provided as examples in the descriptor
+- copies a utility module
 
 ## Notes
 
-* for the server layer, the (positional) arguments will be translated as part of the url path,
+- for the server layer, the (positional) arguments will be translated as part of the url path,
   the (named) options will be translated into the query part
 
-* the (optional) main data input argument as well as the output will be translated into the http body content
+- the (optional) main data input argument as well as the output will be translated into the http body content
   in layer 2 and in (binary) stdin and stdout in layer 4.
   in these transitions, a method to decode / encode the data from and to binary must be specified
 
-* the server layer must:
-  * first match the http data (method, path, and expected query args) to an api endpoint
-    of matching signature
-  * if endpoint has input: read and convert body content
-  * convert query args: call the enpoint
-  * if output: convert result
-  * prepare response
-  * send output or []
+- the server layer must:
 
-* types:
-  * click.STRING string str
-  * click.BOOL boolean bool
-  * click.INT integer int
-  * click.FLOAT number float
-  * multiple=True array list
-  * bytes
+  - first match the http data (method, path, and expected query args) to an api endpoint
+    of matching signature
+  - if endpoint has input: read and convert body content
+  - convert query args: call the enpoint
+  - if output: convert result
+  - prepare response
+  - send output or []
+
+- types:
+  - click.STRING string str
+  - click.BOOL boolean bool
+  - click.INT integer int
+  - click.FLOAT number float
+  - multiple=True array list
+  - bytes
 
 ## Exmaple structure (WIP)
 
@@ -69,18 +70,18 @@ def Api(python_paths=None):
 
     import sys
     sys.path += (python_paths or [])
-    import source 
-    
+    import source
+
     class Api:
-        
+
         @staticmethod
         def example_function(data -> schema, arg1=1) -> int) -> None
             """Documentation
 
             Args:
-                data(schema): 
+                data(schema):
                 arg1(int):
-                        
+
             """
             source.example_function(
                 data_source=validate(data),
@@ -93,7 +94,7 @@ def Api(python_paths=None):
 
             Args:
                 id(int)
-            
+
             Returns:
                 schema
             """
@@ -157,17 +158,17 @@ maybe there is a better way to do that (but not using types.SimpleNamespace)?
 """
 from . import utils
 def Api(host):
-    
+
     class Api:
-        
+
         @staticmethod
         def example_function(data -> schema, arg1=1) -> int) -> None
             """Documentation
 
             Args:
-                data(schema): 
+                data(schema):
                 arg1(int):
-                        
+
             """
             url, method = get_url(host, 'example_function')
             response = requests.request(method=method, url=url, data=data, params={"arg1": arg1})
@@ -179,7 +180,7 @@ def Api(host):
 
             Args:
                 id(int)
-            
+
             Returns:
                 schema
             """
@@ -215,7 +216,7 @@ def main_example_function(ctx, arg1):
     ctx.obj["api"].example_function(
         data=data,
         arg1=arg1
-    )    
+    )
 
 
 if __name__ == "__main__":

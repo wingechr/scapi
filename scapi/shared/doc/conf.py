@@ -56,10 +56,3 @@ napoleon_use_ivar = False
 napoleon_use_param = True
 napoleon_use_rtype = True
 napoleon_use_keyword = True
-
-
-class AAA:
-    """asjdk asljd askd"""
-
-    def aaa():
-        """asjdk asljd askd"""
