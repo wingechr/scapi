@@ -22,11 +22,12 @@ from .endpoint_wsgi import EndpointWSGI
 @click.argument("schema_json", type=click.Path(exists=True))
 @click.argument("output_path", type=click.Path(exists=False))
 @click.option("--build-docs", "-d", is_flag=True)
-def main(schema_json, output_path, build_docs):
-    build(schema_json, output_path, build_docs)
+@click.option("--run-test", "-t", is_flag=True)
+def main(schema_json, output_path, build_docs, run_test):
+    build(schema_json, output_path, build_docs, run_test)
 
 
-def build(schema_json, output_path, build_docs=False):
+def build(schema_json, output_path, build_docs=False, run_test=False):
 
     logging.debug(f"schema_json: {schema_json}")
     logging.debug(f"output_path: {output_path}")
@@ -69,7 +70,7 @@ def build(schema_json, output_path, build_docs=False):
     text_dump(EndpointCli.get_code(), output_path + "/cli.py")
 
     if build_docs:
-        sp.Popen(
+        proc = sp.Popen(
             [
                 "sphinx-build",
                 output_path + "/doc",
@@ -78,7 +79,19 @@ def build(schema_json, output_path, build_docs=False):
                 "singlehtml",
             ],
             shell=True,
-        ).communicate()
+        )
+        proc.communicate()
+        if proc.returncode:
+            logging.error("Building docs failed")
+
+    if run_test:
+        proc = sp.Popen(
+            ["python3", output_path + "/test.py"],
+            shell=True,
+        )
+        proc.communicate()
+        if proc.returncode:
+            logging.error("running tests failed")
 
 
 if __name__ == "__main__":

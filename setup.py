@@ -28,6 +28,9 @@ if __name__ == "__main__":
             "License :: CC0 1.0 Universal (CC0 1.0) Public Domain Dedication",
             "Operating System :: OS Independent",
         ],
-        entry_points={"console_scripts": ["scapi = build:main"]},
-        package_data={"WINGECHR_PACKAGE_TEMPLATE.test": ["data/**"]},
+        entry_points={"console_scripts": ["scapi-build = scapi.build:main"]},
+        package_data={
+            "test": ["example/**"],
+            "scapi": ["schema/**", "shared/**", "shared/doc/**"],
+        },
     )
