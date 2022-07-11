@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 from collections import OrderedDict
 
-from .build_utils import add_into_tree, iter_tree
-from .classes import Argument, Input, Option, Output, Source
+from .build_utils import add_into_tree, iter_tree, underscore_props
+from .classes import Parameters, Source, Target
 from .code import IndentedCodeBlock
 
 
@@ -13,31 +13,25 @@ class Endpoint:
 
     def __init__(
         self,
-        path,
+        target,
         source,
-        arguments=None,
-        options=None,
-        input=None,
-        output=None,
-        http=None,
-        description=None,
+        parameters,
+        description,
         examples=None,
         authorization=None,
     ):
+        self.target = Target(**underscore_props(target))
+        self.source = Source(**underscore_props(source))
+        self.parameters = Parameters(**underscore_props(parameters))
         self.description = description
-        self.path = path
-        self._http = http
-        self.source = Source(**source)
-        self.arguments = OrderedDict(
-            (a["name"], Argument(**a)) for a in arguments or []
-        )
-        self.options = OrderedDict((o["name"], Option(**o)) for o in options or [])
-        self.input = Input(**input) if input is not None else None
-        self.output = Output(**output) if output is not None else None
         self.authorization = authorization
 
         add_into_tree(self._tree, self, self.path)
         self._instances.append(self)
+
+    @property
+    def path(self):
+        return self.target.path
 
     @property
     def name_short(self):
@@ -49,16 +43,16 @@ class Endpoint:
 
     @property
     def http(self):
-        if self._http:
-            return self._http
-        elif self.input:
+        if self.target.verb:
+            return self.target.verb
+        elif self.parameters.input_data:
             return "POST"
         else:
             return "GET"
 
     @property
     def path_url(self):
-        if self._http:
+        if self.target.verb:
             path = self.path[:-1]
         else:
             path = self.path[:]
@@ -67,17 +61,15 @@ class Endpoint:
     @classmethod
     def get_signature_parameters(cls, instance):
         params = []
-        if instance.input:
-            params.append(instance.input)
-        for arg in instance.arguments.values():
+        if instance.parameters.input_data:
+            params.append(instance.parameters.input_data)
+        for arg in instance.parameters.arguments.values():
             params.append(arg)
-        for opt in instance.options.values():
-            params.append(opt)
         return params
 
     @classmethod
     def get_signature_output(cls, instance):
-        return instance.output
+        return instance.parameters.output_data
 
     # ---------------------------
     # code generation
@@ -127,4 +119,3 @@ class Endpoint:
             return IndentedCodeBlock(
                 "return %s(" % wrap_fun, code, footer=", %s)" % schema
             )
-        return code

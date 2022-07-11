@@ -1,52 +1,49 @@
 {
-  "$schema": "../../schema/api.json",
+  "$schema": "../../scapi/schema/scapi.schema.json",
   "version": "0.1.0",
   "endpoints": [
     {
-      "path": ["mod", "fun"],
+      "target": {
+        "path": ["mod", "fun"]
+      },
       "source": {
         "imports": ["example_package", "example_module"],
         "path": ["fun"]
       },
-      "input": {
-        "type": {
-          "content": "application/json; charset=utf8; schema=inputSchema"
-        },
-        "name": "data",
-        "source": "a",
-        "description": "desc"
-      },
-      "arguments": [
-        {
-          "name": "b",
-          "type": {
-            "type": "integer"
-          },
-          "description": "description"
-        }
-      ],
-      "options": [
-        {
-          "name": "c",
-          "type": {
-            "type": "boolean"
-          },
+      "parameters": {
+        "inputData": {
+          "content": "application/json; charset=utf8; schema=inputSchema",
+          "name": "a",
           "description": "desc"
         },
-        {
-          "name": "d",
-          "type": {
-            "type": "integer",
-            "multiple": true
+        "arguments": [
+          {
+            "name": "b",
+            "type": {
+              "type": "integer"
+            },
+            "description": "description"
           },
+          {
+            "name": "c",
+            "type": {
+              "type": "boolean"
+            },
+            "description": "desc"
+          },
+          {
+            "name": "d",
+            "type": {
+              "type": "integer",
+              "multiple": true
+            },
+            "description": "desc"
+          }
+        ],
+        "outputData": {
+          "content": "application/json; charset=utf8; schema=outputSchema",
           "description": "desc"
         }
-      ],
-      "output": {
-        "type": {
-          "content": "application/json; charset=utf8; schema=outputSchema"
-        },
-        "description": "desc"
       },
       "description": "Example description\nmultiline text",
       "examples": [
@@ -78,45 +75,46 @@
       "authorization": true
     },
     {
-      "path": ["mod", "fun2"],
+      "target": {
+        "path": ["mod", "fun2"]
+      },
       "source": {
         "imports": ["example_package", "example_module"],
         "path": ["fun2"]
       },
-      "arguments": [
-        {
-          "name": "b",
-          "type": {
-            "type": "integer"
+      "parameters": {
+        "arguments": [
+          {
+            "name": "b",
+            "type": {
+              "type": "integer"
+            },
+            "description": "description"
           },
-          "description": "description"
-        }
-      ],
-      "options": [
-        {
-          "name": "c",
-          "type": {
-            "type": "boolean"
+          {
+            "name": "c",
+            "type": {
+              "type": "boolean"
+            },
+            "description": "desc"
           },
+          {
+            "name": "d",
+            "type": {
+              "type": "integer",
+              "multiple": true
+            },
+            "description": "desc"
+          }
+        ],
+        "outputData": {
+          "content": "application/json; charset=utf8; schema=outputSchema",
           "description": "desc"
-        },
-        {
-          "name": "d",
-          "type": {
-            "type": "integer",
-            "multiple": true
-          },
-          "description": "desc"
         }
-      ],
-      "output": {
-        "type": {
-          "content": "application/json; charset=utf8; schema=outputSchema"
-        },
-        "description": "desc"
       },
       "description": "Example description 2222",
       "authorization": false
     }
-  ]
+  ],
+  "description": "Example description"
 }

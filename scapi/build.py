@@ -36,7 +36,7 @@ def build(schema_json, output_path, build_docs=False, run_test=False):
 
     # load and validate schema
     schema = json_load(schema_json)
-    metaschema = json_load(SRC_DIR + "/schema/api.json")
+    metaschema = json_load(SRC_DIR + "/schema/scapi.schema.json")
     jsonschema.validate(schema, metaschema)
 
     # create output directory
@@ -45,12 +45,14 @@ def build(schema_json, output_path, build_docs=False, run_test=False):
 
     # files from shared
     shared_path = SRC_DIR + "/shared"
-    for rt, _ds, fs in os.walk(shared_path):
+    for rt, _, fs in os.walk(shared_path):
         for f in fs:
             if re.match(r"^.*\.(py|rst)$", f):
-                path = os.path.relpath(rt + "/" + f, shared_path)
-                os.makedirs(os.path.dirname(output_path + "/" + path), exist_ok=True)
-                shutil.copy(shared_path + "/" + path, output_path + "/" + path)
+                relpath = os.path.relpath(rt + "/" + f, shared_path)
+                path = shared_path + "/" + relpath
+                path2 = output_path + "/" + relpath
+                os.makedirs(os.path.dirname(path2), exist_ok=True)
+                shutil.copy(path, path2)
         #
     # save schema, set metaschema
     json_dump(metaschema, output_path + "/metaschema.json")
@@ -68,6 +70,7 @@ def build(schema_json, output_path, build_docs=False, run_test=False):
     text_dump(EndpointWSGI.get_code(), output_path + "/wsgi.py")
     text_dump(EndpointClient.get_code(), output_path + "/client.py")
     text_dump(EndpointCli.get_code(), output_path + "/cli.py")
+    text_dump("", output_path + "/__init__.py")
 
     if build_docs:
         proc = sp.Popen(

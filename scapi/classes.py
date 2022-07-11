@@ -1,5 +1,8 @@
 #!/usr/bin/env python3
+from collections import OrderedDict
 from copy import deepcopy
+
+from .build_utils import underscore_props
 
 type_to_python_type = {
     "boolean": "bool",
@@ -88,33 +91,48 @@ class Type:
         return result
 
 
-class Parameter:
-    """superclass for arguments/options/input"""
+class Parameters:
+    """"""
 
-    def __init__(self, name=None, type=None, description=None, source=None):
+    def __init__(self, arguments, output_data, input_data=None, resource_id=None):
+        self.arguments = OrderedDict()
+        for a in arguments:
+            a = Argument(**underscore_props(a))
+            assert a.name not in self.arguments
+            self.arguments[a.name] = a
+
+        self.output_data = OutputData(**underscore_props(output_data))
+        self.input_data = (
+            InputData(**underscore_props(input_data)) if input_data else None
+        )
+        self.resource_id = (
+            ResourceId(**underscore_props(resource_id)) if resource_id else None
+        )
+
+
+class Parameter:
+    def __init__(self, name, type, description, name_target=None):
         self.name = name
-        self.type = Type(**(type or {}))
+        self.type = type
+        self.name_target = name_target or self.name
         self.description = description
-        self.source = source or self.name
-        if not self.description:
-            raise Exception("Missing description for %s" % self.name)
 
     def get_code_fun_def(self):
         if not self.name:
             raise Exception("no name")
         result = self.name
         result += ": " + self.type.python_type_annotation
-        result += "=None"
+        if self.has_default:
+            result += "=%s" % self.default
         return result
 
     def get_code_docstring(self):
         if not self.name:
             raise Exception("no name")
         result = self.name
-        if isinstance(self, Option):
-            result += "(" + self.type.python_type_annotation + ", optional)"
-        else:
-            result += "(" + self.type.python_type_annotation + ")"
+
+        result += "(" + self.type.python_type_annotation + ")"
+
         result += ":"  # always add the colon!
 
         if self.type.multiple:
@@ -141,21 +159,21 @@ class Parameter:
         copy.type = Type(type="string")
         return copy
 
-    def as_string_array(self):
-        copy = deepcopy(self)
-        copy.type = Type(type="string", multiple=True)
-        return copy
+    @property
+    def has_default(self):
+        return True
 
-    def as_source(self):
-        copy = deepcopy(self)
-        copy.name = copy.source
+    @property
+    def default(self):
+        return None
 
 
 class Argument(Parameter):
     """position argument / url part"""
 
-    def __init__(self, name, type, description=None, source=None, **_kwargs):
-        super().__init__(name=name, type=type, description=description, source=source)
+    def __init__(self, name, type, description, name_target=None):
+        super().__init__(name, Type(**type), description)
+        self.name_target = name_target or self.name
 
     def get_code_fun_def(self):
         if not self.name:
@@ -165,20 +183,34 @@ class Argument(Parameter):
         return result
 
 
-class Option(Parameter):
-    """named argument / query"""
+class InputData(Parameter):
+    def __init__(self, name, content, description, name_target="data"):
+        super().__init__(name, Type(content=content), description)
 
-    def __init__(self, name, type, description=None, source=None, **_kwargs):
-        super().__init__(name=name, type=type, description=description, source=source)
+    def get_code_docstring(self):
+        result = self.type.python_type_annotation + ":"
+
+        if self.type.content_params.get("schema"):
+            # also show content type
+            result += " Data schema is %s." % self.type.content_params.get("schema")
+
+        if self.description:
+            result += " " + self.description
+        return result
+
+    @property
+    def has_default(self):
+        return False
 
 
-class Input(Argument):
-    pass
+class ResourceId(Parameter):
+    def __init__(self, name, type, description, name_target="id"):
+        super().__init__(name, Type(**type), description)
 
 
-class Output(Parameter):
-    def __init__(self, type, description=None, **_kwargs):
-        super().__init__(type=type, description=description)
+class OutputData(Parameter):
+    def __init__(self, content, description):
+        super().__init__(None, Type(content=content), description)
 
     def get_code_docstring(self):
         result = self.type.python_type_annotation + ":"
@@ -196,5 +228,13 @@ class Source:
     """source in underlying base code"""
 
     def __init__(self, imports, path):
-        self.imports = imports or []
-        self.path = path or []
+        self.imports = imports
+        self.path = path
+
+
+class Target:
+    """TODO"""
+
+    def __init__(self, path, verb=None):
+        self.verb = verb
+        self.path = path

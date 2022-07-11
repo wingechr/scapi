@@ -8,7 +8,7 @@ if __name__ == "__main__":
     setup(
         packages=find_packages(),
         keywords=[],
-        install_requires=["click", "coloredlogs"],
+        install_requires=["click", "coloredlogs", "inflection"],
         name="scapi",
         description="TODO",
         long_description=long_description,

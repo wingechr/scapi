@@ -5,6 +5,12 @@ import os
 import sys
 from collections import OrderedDict
 
+from inflection import underscore
+
+
+def underscore_props(props):
+    return dict((underscore(k), v) for k, v in props.items())
+
 
 def json_serialize(x):
     if isinstance(x, datetime.datetime):

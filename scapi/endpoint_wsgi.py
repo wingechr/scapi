@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-from .classes import Argument, Input, Option
+from .classes import Argument, InputData
 from .code import CodeBlock, CommaJoinedCodeBlock, IndentedCodeBlock
 from .endpoint import Endpoint
 from .endpoint_api import EndpointApi
@@ -10,19 +10,17 @@ class EndpointWSGI(Endpoint):
     def get_signature_parameters(cls, instance):
         params = []
         for p in super().get_signature_parameters(instance):
-            if isinstance(p, Input):
+            if isinstance(p, InputData):
                 p = p.as_bytes()
             elif isinstance(p, Argument):
                 p = p.as_string()
-            elif isinstance(p, Option):
-                p = p.as_string_array()
             params.append(p)
         return params
 
     @classmethod
     def get_signature_output(cls, instance):
-        if instance.output:
-            return instance.output.as_bytes()
+        if instance.parameters.output_data:
+            return instance.parameters.output_data.as_bytes()
 
     # ---------------------------
     # code generation
@@ -54,12 +52,21 @@ class EndpointWSGI(Endpoint):
 
         output_tgt = EndpointApi.get_signature_output(instance)
         path_args = ['"%s"' % p for p in cls.get_url_path(instance)]
-        input_name = '"%s"' % instance.input.name if instance.input else None
+        input_data_name = (
+            '"%s"' % instance.parameters.input_data.name
+            if instance.parameters.input_data
+            else None
+        )
         # msut not be empty
         output_content_type = '"%s"' % output_tgt.type.content if output_tgt else "None"
         route = (
-            '@application.route("%s", [%s], input_name=%s, output_content_type=%s)'
-            % (instance.http, ", ".join(path_args), input_name, output_content_type)
+            '@application.route("%s", [%s], input_data_name=%s, output_content_type=%s)'
+            % (
+                instance.http,
+                ", ".join(path_args),
+                input_data_name,
+                output_content_type,
+            )
         )
 
         fun_name = ".".join(["application", "api"] + instance.path)
@@ -70,22 +77,22 @@ class EndpointWSGI(Endpoint):
 
         param_strs = []
         for pt, ps in zip(parameters_tgt, parameters_src):
-            if isinstance(pt, Input):
+            if isinstance(pt, InputData):
                 param_strs.append(
                     '%s=utils.decode_content(%s, "%s")'
                     % (pt.name, ps.name, pt.type.content)
                 )
-            elif isinstance(pt, Option):
-                if pt.type.multiple:
-                    param_strs.append(
-                        '%s=utils.list_from_string_list(%s, "%s")'
-                        % (pt.name, ps.name, pt.type.type)
-                    )
-                else:
-                    param_strs.append(
-                        '%s=utils.single_from_string_list(%s, "%s")'
-                        % (pt.name, ps.name, pt.type.type)
-                    )
+            # elif isinstance(pt, Option):
+            #    if pt.type.multiple:
+            #        param_strs.append(
+            #            '%s=utils.list_from_string_list(%s, "%s")'
+            #            % (pt.name, ps.name, pt.type.type)
+            #        )
+            #    else:
+            #        param_strs.append(
+            #            '%s=utils.single_from_string_list(%s, "%s")'
+            #            % (pt.name, ps.name, pt.type.type)
+            #        )
             else:
                 param_strs.append(
                     '%s=utils.from_string(%s, "%s")' % (pt.name, ps.name, pt.type.type)
@@ -135,5 +142,7 @@ class EndpointWSGI(Endpoint):
     @classmethod
     def get_url_path(cls, instance):
         path_args = ["%s" % p for p in instance.path_url]
-        path_args += ["(?P<%s>[^/?]+)" % a.name for a in instance.arguments.values()]
+        path_args += [
+            "(?P<%s>[^/?]+)" % a.name for a in instance.parameters.arguments.values()
+        ]
         return path_args

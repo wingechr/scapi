@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-from .classes import Input
+from .classes import InputData
 from .code import CodeBlock, CommaJoinedCodeBlock, IndentedCodeBlock
 from .endpoint import Endpoint
 
@@ -49,18 +49,18 @@ class EndpointApi(Endpoint):
 
         param_strs = []
         for p in parameters_src:
-            if isinstance(p, Input):
+            if isinstance(p, InputData):
                 param_strs.append(
                     '%s=%s(%s, "%s")'
-                    % (p.source, "utils.validate_content", p.name, p.type.content)
+                    % (p.name, "utils.validate_content", p.name_target, p.type.content)
                 )
             else:
                 param_strs.append(
                     "%s=%s(%s, %s)"
                     % (
-                        p.source,
-                        "utils.validate",
                         p.name,
+                        "utils.validate",
+                        p.name_target,
                         p.type.python_type_validation,
                     )
                 )

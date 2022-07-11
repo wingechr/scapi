@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-from .classes import Argument, Input
+from .classes import Argument, InputData
 from .code import CodeBlock, CommaJoinedCodeBlock, IndentedCodeBlock
 from .endpoint import Endpoint
 from .endpoint_api import EndpointApi
@@ -13,15 +13,15 @@ class EndpointCli(Endpoint):
             Argument(name="ctx", type={"type": "object"}, description="click context")
         ]
         for p in super().get_signature_parameters(instance):
-            if isinstance(p, Input):
+            if isinstance(p, InputData):
                 p = p.as_bytes()
             params.append(p)
         return params
 
     @classmethod
     def get_signature_output(cls, instance):
-        if instance.output:
-            return instance.output.as_bytes()
+        if instance.parameters.output_data:
+            return instance.parameters.output_data.as_bytes()
 
     # ------------------------------------
     # code generation
@@ -78,20 +78,15 @@ class EndpointCli(Endpoint):
         decorators = CodeBlock()
         decorators += '@%s.command("%s")' % (group_name, name)
         decorators += "@utils.click.pass_context"
-        for a in instance.arguments.values():
-            decorators += '@utils.click.argument("%s", %s)' % (
-                a.name,
-                a.type.click_repr,
-            )
-        for o in instance.options.values():
+        for o in instance.parameters.arguments.values():
             decorators += '@utils.click.option("--%s", %s, help="%s")' % (
-                o.name,
+                o.name_target,
                 o.type.click_repr,
                 o.click_help,
             )
-        if instance.input:
-            decorators += "@utils.input_stdin"
-        if instance.output:
+        if instance.parameters.input_data:
+            decorators += "@utils.InputData_stdin"
+        if instance.parameters.output_data:
             decorators += "@utils.output_stdout"
 
         fun_name = ".".join(["ctx", "obj", "api"] + instance.path)
@@ -102,13 +97,13 @@ class EndpointCli(Endpoint):
 
         param_strs = []
         for pt, ps in zip(parameters_tgt, parameters_src):
-            if isinstance(pt, Input):
+            if isinstance(pt, InputData):
                 param_strs.append(
                     '%s=utils.decode_content(%s, "%s")'
-                    % (pt.name, ps.name, pt.type.content)
+                    % (pt.name_target, ps.name_target, pt.type.content)
                 )
             else:
-                param_strs.append("%s=%s" % (pt.name, ps.name))
+                param_strs.append("%s=%s" % (pt.name_target, ps.name_target))
 
         output_tgt = EndpointApi.get_signature_output(instance)
 

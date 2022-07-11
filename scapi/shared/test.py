@@ -40,7 +40,7 @@ class TestTemplate(unittest.TestCase):
     def test_examples(self):
         """find all examples and test them"""
         for endpoint in self.schema["endpoints"]:
-            path = endpoint["path"]
+            path = endpoint["target"]["path"]
             callable_remote = self.api_remote
             callable_local = self.api_local
             for p in path:

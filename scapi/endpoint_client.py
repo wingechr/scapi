@@ -33,10 +33,10 @@ class EndpointClient(EndpointApi):
         params = [("method", '"%s"' % instance.http)]
 
         url = '"%s/' + "/".join(instance.path_url)
-        if instance.arguments:
+        if instance.parameters.arguments.values():
             placeholders = ""
             variables = ""
-            for a in instance.arguments.values():
+            for a in instance.parameters.arguments.values():
                 placeholders += "/%s"
                 variables += ", " + a.name
             url += placeholders + '" % (remote' + variables + ")"
@@ -45,26 +45,16 @@ class EndpointClient(EndpointApi):
 
         params.append(("url", url))
 
-        if instance.options:
-            params.append(
-                (
-                    "params",
-                    "{"
-                    + ",".join(
-                        '"%s": %s' % (o.source, o.name)
-                        for o in instance.options.values()
-                    )
-                    + "}",
-                )
-            )
-        if instance.input:
-            p = instance.input
+        if instance.parameters.input_data:
+            p = instance.parameters.input_data
             line = 'utils.encode_content(%s, "%s")' % (
                 p.name,
-                instance.input.type.content,
+                instance.parameters.input_data.type.content,
             )
             params.append(("data", line))
-            params.append(("content_type", '"%s"' % instance.input.type.content))
+            params.append(
+                ("content_type", '"%s"' % instance.parameters.input_data.type.content)
+            )
 
         params = ["%s=%s" % p for p in params]
 
