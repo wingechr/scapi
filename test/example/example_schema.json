@@ -78,7 +78,7 @@
       "authorization": true
     },
     {
-      "path": ["mod", "fun2"],
+      "path": ["mod2", "submod", "fun2"],
       "source": {
         "imports": ["example_package", "example_module"],
         "path": ["fun2"]

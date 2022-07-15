@@ -36,9 +36,9 @@ class EndpointApi(Endpoint):
         """nest endpoints in classes"""
         if path:
             name = path[-1]
+            return CodeBlock(None, IndentedCodeBlock("class %s:" % name, *elements))
         else:
-            name = "api"
-        return CodeBlock(None, IndentedCodeBlock("class %s:" % name, *elements))
+            return CodeBlock(*elements)
 
     @classmethod
     def get_code_instance(cls, instance, path):

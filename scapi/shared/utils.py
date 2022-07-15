@@ -346,9 +346,6 @@ def get_api(remote=None):
     else:
         import api
 
-        api = (
-            api.api
-        )  # you can also do api_local() to get an instance, but not required
     return api
 
 

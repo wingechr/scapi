@@ -1,7 +1,7 @@
 API
 ===
 
-.. autoclass:: api.api
+.. automodule:: api
    :members:
    :undoc-members:
 

@@ -8,6 +8,7 @@ import subprocess as sp
 from copy import deepcopy
 
 import click
+import coloredlogs
 import jsonschema
 
 from .endpoint import Endpoint
@@ -23,7 +24,16 @@ from .utils import json_dump, json_load, text_dump
 @click.argument("output_path", type=click.Path(exists=False))
 @click.option("--build-docs", "-d", is_flag=True)
 @click.option("--run-test", "-t", is_flag=True)
-def main(schema_json, output_path, build_docs, run_test):
+@click.option(
+    "--loglevel",
+    "-l",
+    type=click.Choice(["debug", "info", "warning", "error"]),
+    default="debug",
+)
+def main(schema_json, output_path, build_docs, run_test, loglevel):
+    if isinstance(loglevel, str):  # e.g. 'debug'/'DEBUG' -> logging.DEBUG
+        loglevel = getattr(logging, loglevel.upper())
+        coloredlogs.install(level=loglevel)
     build(schema_json, output_path, build_docs, run_test)
 
 
@@ -96,4 +106,4 @@ def build(schema_json, output_path, build_docs=False, run_test=False):
 
 
 if __name__ == "__main__":
-    main(prog_name="python3 build.py")
+    main(prog_name="scapi")

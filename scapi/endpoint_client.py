@@ -28,6 +28,15 @@ class EndpointClient(EndpointApi):
         )
 
     @classmethod
+    def get_code_group(cls, elements, path):
+        """nest endpoints in classes"""
+        if path:
+            name = path[-1]
+        else:
+            name = "api"
+        return CodeBlock(None, IndentedCodeBlock("class %s:" % name, *elements))
+
+    @classmethod
     def get_code_instance(cls, instance, path):
 
         params = [("method", '"%s"' % instance.http)]
