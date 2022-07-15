@@ -64,6 +64,10 @@ class Endpoint:
             path = self.path[:]
         return path
 
+    @property
+    def url(self):
+        return "/".join(self.path_url)
+
     @classmethod
     def get_signature_parameters(cls, instance):
         params = []

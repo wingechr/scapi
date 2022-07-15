@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+
 from .classes import Argument, Input, Option
 from .code import CodeBlock, CommaJoinedCodeBlock, IndentedCodeBlock
 from .endpoint import Endpoint
@@ -6,6 +7,14 @@ from .endpoint_api import EndpointApi
 
 
 class EndpointWSGI(Endpoint):
+    @classmethod
+    def get_signature_options(cls, instance):
+        params = []
+        for p in super().get_signature_parameters(instance):
+            if isinstance(p, Option):
+                params.append(p)
+        return params
+
     @classmethod
     def get_signature_parameters(cls, instance):
         params = []
@@ -30,7 +39,42 @@ class EndpointWSGI(Endpoint):
 
     @classmethod
     def get_code(cls):
+
+        # create docs for all endpoints using sphinxcontrib-httpdomain
+        # https://sphinxcontrib-httpdomain.readthedocs.io/en/stable/
+
+        endpoint_docs = []
+        for ep in cls._instances:
+            # /users/(int:user_id)/posts/(tag)
+
+            options_docs = []
+            for op in cls.get_signature_options(ep):
+                options_docs.append(
+                    f":query {op.type.url_type} {op.name}: {op.description}"
+                )
+
+            url = cls.get_url_doc(ep)
+
+            endpoint_docs.append(
+                IndentedCodeBlock(
+                    f".. http:{ep.http}:: /{url}",
+                    None,
+                    ep.description,
+                    None,
+                    options_docs,
+                    """
+                :reqheader Authorization: optional token to authenticate
+                :resheader X-Messages: TODO: server messages
+                :statuscode 200: OK
+                """,
+                    None,
+                )
+            )
+
+        docstring = CodeBlock('"""', endpoint_docs, '"""')
+
         return CodeBlock(
+            docstring,
             "import logging",
             "import utils",
             None,
@@ -115,30 +159,19 @@ class EndpointWSGI(Endpoint):
 
     @classmethod
     def get_code_fun_docstring(cls, instance):
-        result = CodeBlock('"""%s' % instance.description)
-
-        # create URL
-        url_pattern = "/".join(cls.get_url_path(instance))
-
-        options = ""  # TODO
-        if options:
-            options = "?" + options
-
-        result += CodeBlock(
-            None,
-            IndentedCodeBlock(
-                "URL::",  # rst indented literal code
-                None,
-                "%s %s%s" % (instance.http, url_pattern, options),
-                None,
-            ),
-        )
-
-        result += '"""'
-        return result
+        return None
 
     @classmethod
     def get_url_path(cls, instance):
         path_args = ["%s" % p for p in instance.path_url]
         path_args += ["(?P<%s>[^/?]+)" % a.name for a in instance.arguments.values()]
+        return path_args
+
+    @classmethod
+    def get_url_doc(cls, instance):
+        path_args = ["%s" % p for p in instance.path_url]
+        path_args += [
+            f"({a.type.url_type}:{a.name})" for a in instance.arguments.values()
+        ]
+        path_args = "/".join(path_args)
         return path_args

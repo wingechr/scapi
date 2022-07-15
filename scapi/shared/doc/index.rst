@@ -10,9 +10,6 @@ WEB
 ===
 
 .. automodule:: wsgi
-   :members:
-   :undoc-members:
-
 
 CLI
 ===
