@@ -18,6 +18,19 @@ import requests
 BASE_DIR = os.path.dirname(__file__)
 SCHEMA_DIR = BASE_DIR + "/doc/schema"
 
+coloredlogs.DEFAULT_LOG_FORMAT = "[%(asctime)s %(levelname)7s] %(message)s"
+coloredlogs.DEFAULT_DATE_FORMAT = "%Y-%m-%d %H:%M:%S"
+coloredlogs.DEFAULT_FIELD_STYLES = {
+    "asctime": {"color": "black", "bold": True},  # gray
+    "levelname": {"color": "black", "bold": True},  # gray
+}
+coloredlogs.DEFAULT_LEVEL_STYLES = {
+    "debug": {"color": "black", "bold": True},  # gray
+    "info": {"color": "white"},
+    "warning": {"color": "yellow"},
+    "error": {"color": "red", "bold": 10},
+}
+
 
 def load_schema():
     with open(SCHEMA_DIR + "/schema.json", encoding="utf-8") as file:
@@ -315,7 +328,7 @@ def wsgi_serve_script(script_file):
         "--loglevel",
         "-l",
         type=click.Choice(["debug", "info", "warning", "error"]),
-        default="debug",
+        default="info",
     )
     @click.option(
         "--port",
@@ -328,7 +341,7 @@ def wsgi_serve_script(script_file):
             loglevel = getattr(logging, loglevel.upper())
             coloredlogs.install(level=loglevel)
 
-        logging.debug("loading wsgi script from %s", script_file)
+        logging.error("loading wsgi script from %s", script_file)
         wsgi_mod = import_filepath(script_file)
         application = wsgi_mod.application
 

@@ -18,6 +18,19 @@ from .endpoint_client import EndpointClient
 from .endpoint_wsgi import EndpointWSGI
 from .utils import json_dump, json_load, text_dump
 
+coloredlogs.DEFAULT_LOG_FORMAT = "[%(asctime)s %(levelname)7s] %(message)s"
+coloredlogs.DEFAULT_DATE_FORMAT = "%Y-%m-%d %H:%M:%S"
+coloredlogs.DEFAULT_FIELD_STYLES = {
+    "asctime": {"color": "black", "bold": True},  # gray
+    "levelname": {"color": "black", "bold": True},  # gray
+}
+coloredlogs.DEFAULT_LEVEL_STYLES = {
+    "debug": {"color": "black", "bold": True},  # gray
+    "info": {"color": "white"},
+    "warning": {"color": "yellow"},
+    "error": {"color": "red", "bold": 10},
+}
+
 
 @click.command()
 @click.argument("schema_json", type=click.Path(exists=True))
@@ -28,12 +41,13 @@ from .utils import json_dump, json_load, text_dump
     "--loglevel",
     "-l",
     type=click.Choice(["debug", "info", "warning", "error"]),
-    default="debug",
+    default="info",
 )
 def main(schema_json, output_path, build_docs, run_test, loglevel):
     if isinstance(loglevel, str):  # e.g. 'debug'/'DEBUG' -> logging.DEBUG
         loglevel = getattr(logging, loglevel.upper())
         coloredlogs.install(level=loglevel)
+
     build(schema_json, output_path, build_docs, run_test)
 
 
@@ -88,6 +102,7 @@ def build(schema_json, output_path, build_docs=False, run_test=False):
                 output_path + "/doc/build",
                 "-b",
                 "singlehtml",
+                "-q",
             ],
             shell=True,
         )
