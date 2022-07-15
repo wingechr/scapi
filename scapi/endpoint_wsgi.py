@@ -119,12 +119,17 @@ class EndpointWSGI(Endpoint):
 
         # create URL
         url_pattern = "/".join(cls.get_url_path(instance))
+
+        options = ""  # TODO
+        if options:
+            options = "?" + options
+
         result += CodeBlock(
             None,
             IndentedCodeBlock(
                 "URL::",  # rst indented literal code
                 None,
-                "%s %s" % (instance.http, url_pattern),
+                "%s %s%s" % (instance.http, url_pattern, options),
                 None,
             ),
         )

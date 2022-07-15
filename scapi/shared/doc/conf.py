@@ -4,7 +4,7 @@ import sys
 
 sys.path.insert(0, os.path.dirname(__file__) + "/..")
 
-project = "api"
+project = "PROJECT"
 version = "0.0.1"
 
 html_search_language = "en"
@@ -35,11 +35,12 @@ add_function_parentheses = True
 
 extensions = [
     "sphinx.ext.autodoc",
-    "sphinx.ext.todo",
-    "sphinx.ext.mathjax",
-    "sphinx.ext.viewcode",
+    # "sphinx.ext.todo",
+    # "sphinx.ext.mathjax",
+    # "sphinx.ext.viewcode",
     "sphinxcontrib.napoleon",  # requires sphinxcontrib-napoleon
-    "m2r2",  # new md -> rst
+    "sphinxcontrib.httpdomain",
+    # "m2r2",  # new md -> rst
     "sphinx_click",  # requires sphinx-click
 ]
 

@@ -16,10 +16,11 @@ import jsonschema
 import requests
 
 BASE_DIR = os.path.dirname(__file__)
+SCHEMA_DIR = BASE_DIR + "/doc/schema"
 
 
 def load_schema():
-    with open(BASE_DIR + "/schema.json", encoding="utf-8") as file:
+    with open(SCHEMA_DIR + "/schema.json", encoding="utf-8") as file:
         schema = json.load(file)
     return schema
 
@@ -286,7 +287,7 @@ def request(method, url, params=None, data=None, content_type=None):
     response_messages = res.headers.get("messages")
     if response_messages:
         response_messages = json.loads(response_messages)
-        logging.error("CLIENT RECEIVED MESSAGES %s", response_messages)
+        logging.debug("CLIENT RECEIVED MESSAGES %s", response_messages)
 
     res.raise_for_status()
 
