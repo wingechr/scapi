@@ -3,6 +3,7 @@ from importlib import import_module
 from types import SimpleNamespace
 from urllib.parse import quote_plus  # noqa
 
+from functools import partial
 import click  # noqa
 
 
@@ -14,7 +15,7 @@ class Obj:
     def __str__(self):
         return f"{self.__class__.__name__}({self.id})"
 
-
+        
 class ObjTab:
     cls = Obj
 
@@ -24,6 +25,9 @@ class ObjTab:
     def list(self):
         return self.instances.values()
 
+    def __iter__(self):
+        return iter(self.list())
+    
     def get(self, id):
         return self.instances[id]
 
@@ -31,6 +35,9 @@ class ObjTab:
         return self.get(id)
 
     def delete(self, id):
+        del self.instances[id]
+    
+    def __delitem__(self, id):
         del self.instances[id]
 
     def create(self, data):
@@ -41,15 +48,24 @@ class ObjTab:
         self.instances[id] = inst
         return inst
 
+    def __call__(self, data):
+        return self.create(data)
+
+
     def replace(self, id, data):
         inst = self.cls(data)
         inst.id = id
         self.instances[id] = inst
+    
+    def __setitem__(self, id, data):
+        return self.replace(id, data)
 
-    def update(self, id, data):
-        inst = self.instances[id]
-        inst.data.update(data)
-        return inst
+    
+    # update / PATCH unclear
+    #def update(self, id, data):
+    #    inst = self.instances[id]
+    #    inst.data = inst.data + data  # TODO
+    #    return inst
 
     def __str__(self):
         return f"{self.__class__.__name__}()"
@@ -283,7 +299,7 @@ def parse(obj):
         api_r=rec_parse_api_r(obj, "http://example.com")(api_r_main),
     )
 
-
+"""
 main = parse(specs)
 
 api = main.api_r
@@ -300,7 +316,7 @@ print(type(res))
 res = main.api_l.rest.a[1].b[2]
 
 
-"""
+
 api = main.api_l
 
 res = api.fun("&")
@@ -322,3 +338,136 @@ res = api.rest.a[1]
 assert res.data == "a1"
 
 """
+
+
+db = load_db()
+
+
+# GET|DEL /db/1/b/1
+# NOTE: 
+# db[1].b.get(1)
+# db[1].b.__getitem__(1)
+res = db[1].b[1]  # GET
+print(res.data)
+
+# db[1].b.delete(1)
+# db[1].b.__delitem__(1)
+del db[1].b[1] # DELETE
+
+
+def fg(n):
+    return globals()[n]
+
+def fa(n):
+    def f(o, *args, **kwargs):        
+        return getattr(o, n)(*args, **kwargs)
+    return f
+
+def fga():
+    def f(o, *args, **kwargs):        
+        getattr(o, *args, **kwargs)
+    return f
+
+def fj(*args):
+    return '/'.join(str(a) for a in args)
+
+f0 = fg("load_db")
+fgi = fa("__getitem__")
+fga = getattr
+
+
+def dl(u, b):
+    return ("REQ", b+u)
+
+def d0():
+    return "a"
+
+db = f0()
+a1 = fgi(db, 1)
+b = fga(a1, "b")
+b1 = fgi(b, 1)
+
+print(b1)
+
+db = d0()
+a1 = fj(db, 1)
+b = fj(a1, "b")
+b1 = fj(b, 1)
+
+b1 = dl(b1, "http://example.com/")
+
+print(b1)
+
+
+"""
+the python object chain (a.b.c[1].d())
+creates a nested object hierarchy, 
+each elements has
+    * the parent
+    * some args+kwargs
+
+after the last element is constructed, call the thing in reverse,
+each parent result being the first argument (ctx)
+
+the chain represents a path in the tree of possible calls
+"""
+
+def nothing(*args, **kwargs):
+    print(f"nothing {args}, {kwargs}")
+    pass
+
+class CallChainNode:
+    def __init__(self, parent:"CallChainNode"=None, fun=None, args=None, kwargs=None, index_arg=None):
+        self.parent = parent
+        self.fun = fun or nothing
+        self.args = args or ()
+        self.kwargs = kwargs or {}
+        self.index_arg = index_arg
+    
+    
+    def __call__(self):
+        args = self.args
+        if self.parent:
+            ctx = self.parent()
+            args = (ctx,) + args
+
+        print(f'call {args}, {self.kwargs}')
+        return self.fun(*args, **self.kwargs)
+    
+        
+    def __getitem__(self, index):
+        if not self.index_arg:
+            raise Exception("No index")
+        self.kwargs[self.index_arg] = index
+
+
+x = None
+for y in [(f0,), (fgi, (1,)), (fga, ("b",)), (fgi, (1,))]:
+    x = CallChainNode(x, *y)
+res = x()
+
+print(res)
+
+
+class CallTreeNode:
+    
+    def __init__(self, parent:CallChainNode=None):
+        self.parent=parent
+    
+def create_property(fun=None, args=None, kwargs=None, index_arg=False):
+    def prop(self)-> CallChainNode:
+        fun = None
+        args = None
+        kwargs = None
+        index_arg = False
+        return CallChainNode(parent=self.parent, fun=fun, args=args, kwargs=kwargs, index_arg=index_arg)
+    return property(prop)
+
+
+setattr(CallTreeNode, "branch_b", create_property())
+
+root = CallTreeNode()
+
+
+res = root.branch_b()
+print(res)
