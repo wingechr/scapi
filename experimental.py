@@ -58,44 +58,8 @@ def create_callback(
     return fun_on_callback
 
 
-class CallChainNode:
-    """
-    A subclass of this represents a node in the api TREE,
-    with different methods (__call__,__getitem__,@property) as possible branches
-    each of these methods, when called created an instance
-    An instance of this class represents a node in the actuall call chain.
-    but still, this does not call any of the underlying methods.
-    this will only be done when calling the callback() method, with will
-    recursively co back in the tree and
-        * get context as result of parent.callback()
-        * applying the bound function over the context
-        *
-
-    """
-
-    def __init__(self, fun=None, parent: "CallChainNode" = None):
-        print(f"init {fun}")
-        self.parent = parent
-        self.fun_on_callback = fun  # or pass_ctx
-
-    def __str__(self):
-        return self.__class__.__name__
-
-    def _callback(self):
-        print(f"calling {self}")
-        if self.parent:
-            ctx = self.parent._callback()
-        else:  # root / recursion end
-            ctx = None
-
-        if self.fun_on_callback:
-            ctx = self.fun_on_callback(ctx)
-
-        return ctx
-
-
 def create_attr(
-    result_cls: Type[CallChainNode] = None,
+    result_cls: Type = None,
     use_ctx: bool = None,
     fun: str = None,
     arg_names: List[str] = None,
@@ -104,7 +68,7 @@ def create_attr(
     is_prop = arg_names is None and kwarg_names is None
     is_callable = fun and use_ctx and not is_prop
 
-    def attr(self, *args, **kwargs) -> Union[CallChainNode, Any]:
+    def attr(self, *args, **kwargs) -> Union[Type, Any]:
         fun_on_callback = create_callback(
             use_ctx=use_ctx,
             fun=fun,
@@ -115,18 +79,12 @@ def create_attr(
         )
 
         if result_cls is None:
-            result = CallChainNode(parent=self, fun=fun_on_callback)
-        else:
-            result = result_cls(parent=self, fun=fun_on_callback)
-
-        is_final = result_cls is None
-
-        if is_final:
             if not is_callable:
                 logging.warning("last node should be a callable")
-            result = result._callback()
-
-        return result
+            # return CallChainNode(parent=self, fun=fun_on_callback)._callback()
+            return fun_on_callback(self._callback())
+        else:
+            return result_cls(parent=self, fun=fun_on_callback)
 
     if is_prop:
         attr = property(attr)
@@ -134,11 +92,43 @@ def create_attr(
     return attr
 
 
-def create_node_class(
-    attrs: Dict[str, dict], clsname: str = None
-) -> Type[CallChainNode]:
-    class C(CallChainNode):
-        __slots__ = list(attrs)
+def create_node_class(attrs: Dict[str, dict], clsname: str = None) -> Type:
+    class CallChainNode:
+        """
+        A subclass of this represents a node in the api TREE,
+        with different methods (__call__,__getitem__,@property) as possible branches
+        each of these methods, when called created an instance
+        An instance of this class represents a node in the actuall call chain.
+        but still, this does not call any of the underlying methods.
+        this will only be done when calling the callback() method, with will
+        recursively co back in the tree and
+            * get context as result of parent.callback()
+            * applying the bound function over the context
+            *
+
+        """
+
+        __slots__ = list(attrs) + ["_parent", "_fun_on_callback"]
+
+        def __init__(self, fun=None, parent: Type = None):
+            print(f"init {fun}")
+            self._parent = parent
+            self._fun_on_callback = fun  # or pass_ctx
+
+        def __str__(self):
+            return self.__class__.__name__
+
+        def _callback(self):
+            print(f"calling {self}")
+            if self._parent:
+                ctx = self._parent._callback()
+            else:  # root / recursion end
+                ctx = None
+
+            if self._fun_on_callback:
+                ctx = self._fun_on_callback(ctx)
+
+            return ctx
 
     if not attrs:
         raise Exception("No branches")
@@ -146,12 +136,12 @@ def create_node_class(
     for name, attr in attrs.items():
         if isinstance(attr, dict):
             attr = create_attr(**attr)
-        setattr(C, name, attr)
+        setattr(CallChainNode, name, attr)
 
     if clsname:
-        C.__name__ = clsname
+        CallChainNode.__name__ = clsname
 
-    return C
+    return CallChainNode
 
 
 # Helper
@@ -237,7 +227,6 @@ assert d == "A"
 o = create_node_class({"a": setts})()
 assert o.a is None
 
-
 CLS = create_node_class({"f": create_attr_ext_fun_call("urllib.parse.quote", "string")})
 o = CLS()
 assert o.f("&") == "%26"
@@ -248,7 +237,9 @@ CLS = create_node_class({"f": create_attr_ext_index_obj("DATA", "key")})
 o = CLS()
 assert o.f["a"] == 1
 
-
 CLS = create_node_class({"f": create_attr_index_obj("key")})
 o = CLS(lambda _: DATA)
 assert o.f["a"] == 1
+
+
+help(CLS)
