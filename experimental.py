@@ -1,473 +1,254 @@
-import urllib.parse  # noqa
+# from functools import partial
+import logging
 from importlib import import_module
 from types import SimpleNamespace
-from urllib.parse import quote_plus  # noqa
-
-from functools import partial
-import click  # noqa
+from typing import Any, Callable, Dict, List, Type, Union
+from urllib.parse import quote
 
 
-class Obj:
-    def __init__(self, data):
-        self.data = data
-        self.id = None
-
-    def __str__(self):
-        return f"{self.__class__.__name__}({self.id})"
-
-        
-class ObjTab:
-    cls = Obj
-
-    def __init__(self):
-        self.instances = {}
-
-    def list(self):
-        return self.instances.values()
-
-    def __iter__(self):
-        return iter(self.list())
-    
-    def get(self, id):
-        return self.instances[id]
-
-    def __getitem__(self, id):
-        return self.get(id)
-
-    def delete(self, id):
-        del self.instances[id]
-    
-    def __delitem__(self, id):
-        del self.instances[id]
-
-    def create(self, data):
-        inst = self.cls(data)
-        id = (max(self.instances.keys()) if self.instances else 0) + 1
-        inst.id = id
-        assert id not in self.instances
-        self.instances[id] = inst
-        return inst
-
-    def __call__(self, data):
-        return self.create(data)
+def get_function_from_str(fun: str) -> object:
+    """get method from module or globals"""
+    if "." in fun:
+        fun = fun.split(".")
+        mod, fun = fun[:-1], fun[-1]
+        mod = ".".join(mod)
+        mod = import_module(mod)
+        return getattr(mod, fun)
+    else:
+        return globals()[fun]
 
 
-    def replace(self, id, data):
-        inst = self.cls(data)
-        inst.id = id
-        self.instances[id] = inst
-    
-    def __setitem__(self, id, data):
-        return self.replace(id, data)
+def create_callback(
+    use_ctx: bool = None,
+    fun: str = None,
+    arg_names: List[str] = None,
+    kwarg_names: Dict[str, str] = None,
+    args=None,
+    kwargs=None,
+) -> Callable:
+    is_prop = arg_names is None and kwarg_names is None
 
-    
-    # update / PATCH unclear
-    #def update(self, id, data):
-    #    inst = self.instances[id]
-    #    inst.data = inst.data + data  # TODO
-    #    return inst
+    if not fun:
+        # structural dummy node
+        def fun_on_callback(ctx):
+            return ctx
 
-    def __str__(self):
-        return f"{self.__class__.__name__}()"
+    elif not use_ctx:
+        # new context from external
+        def fun_on_callback(_ctx):
+            # return external object as new context
+            return get_function_from_str(fun)
 
+    elif is_prop:
 
-class B(Obj):
-    pass
+        def fun_on_callback(ctx):
+            return getattr(ctx, fun)
 
+    else:
+        # map kwargs: TODO
+        args = args or ()
+        kwargs = kwargs or {}
+        assert len(args) == len(arg_names or ())
+        kwargs = dict((kwarg_names[k], v) for k, v in kwargs.items())
 
-class BTab(ObjTab):
-    cls = B
+        # callcontext
+        def fun_on_callback(ctx):
+            return getattr(ctx, fun)(*args, **kwargs)
 
-
-class A(Obj):
-    def __init__(self, data):
-        self.data = data
-        self.b = BTab()
-
-
-class ATab(ObjTab):
-    cls = A
-
-
-def load_db():
-    print("load_db")
-    main = ATab()
-    a1 = main.create("a1")
-    a2 = main.create("a2")
-    a1.b.create("a1b1")
-    a1.b.create("a1b2")
-    a2.b.create("a2b1")
-    return main
+    return fun_on_callback
 
 
-def mk_c(name, attributes, properties, methods, help):
+class CallChainNode:
     """
-    slots: dict of name -> function (either magic methodor property)
+    A subclass of this represents a node in the api TREE,
+    with different methods (__call__,__getitem__,@property) as possible branches
+    each of these methods, when called created an instance
+    An instance of this class represents a node in the actuall call chain.
+    but still, this does not call any of the underlying methods.
+    this will only be done when calling the callback() method, with will
+    recursively co back in the tree and
+        * get context as result of parent.callback()
+        * applying the bound function over the context
+        *
+
     """
 
-    slots = list(attributes) + list(properties) + list(methods)
+    def __init__(self, fun=None, parent: "CallChainNode" = None):
+        print(f"init {fun}")
+        self.parent = parent
+        self.fun_on_callback = fun  # or pass_ctx
 
-    class C:
-        __slots__ = slots
-        __doc__ = help
+    def __str__(self):
+        return self.__class__.__name__
 
-        def __dir__(self):
-            return ["a"]
+    def _callback(self):
+        print(f"calling {self}")
+        if self.parent:
+            ctx = self.parent._callback()
+        else:  # root / recursion end
+            ctx = None
 
-    C.__name__ = name
+        if self.fun_on_callback:
+            ctx = self.fun_on_callback(ctx)
 
-    for k, v in properties.items():
-        setattr(C, k, property(v))
-    for k, v in methods.items():
-        setattr(C, k, v)
+        return ctx
+
+
+def create_attr(
+    result_cls: Type[CallChainNode] = None,
+    use_ctx: bool = None,
+    fun: str = None,
+    arg_names: List[str] = None,
+    kwarg_names: Dict[str, str] = None,
+) -> object:
+    is_prop = arg_names is None and kwarg_names is None
+    is_callable = fun and use_ctx and not is_prop
+
+    def attr(self, *args, **kwargs) -> Union[CallChainNode, Any]:
+        fun_on_callback = create_callback(
+            use_ctx=use_ctx,
+            fun=fun,
+            arg_names=arg_names,
+            kwarg_names=kwarg_names,
+            args=args,
+            kwargs=kwargs,
+        )
+
+        if result_cls is None:
+            result = CallChainNode(parent=self, fun=fun_on_callback)
+        else:
+            result = result_cls(parent=self, fun=fun_on_callback)
+
+        is_final = result_cls is None
+
+        if is_final:
+            if not is_callable:
+                logging.warning("last node should be a callable")
+            result = result._callback()
+
+        return result
+
+    if is_prop:
+        attr = property(attr)
+
+    return attr
+
+
+def create_node_class(
+    attrs: Dict[str, dict], clsname: str = None
+) -> Type[CallChainNode]:
+    class C(CallChainNode):
+        __slots__ = list(attrs)
+
+    if not attrs:
+        raise Exception("No branches")
+
+    for name, attr in attrs.items():
+        if isinstance(attr, dict):
+            attr = create_attr(**attr)
+        setattr(C, name, attr)
+
+    if clsname:
+        C.__name__ = clsname
 
     return C
 
 
-def get_function(fun, ctx):
-    # if its already a callable: dont change
-    if not isinstance(fun, str):
-        return fun
-    # if no context (parent) is given: get it from globals
-    if ctx is None:
-        if "." in fun:
-            fun = fun.split(".")
-            mod, fun = fun[:-1], fun[-1]
-            mod = ".".join(mod)
-            mod = import_module(mod)
-            return getattr(mod, fun)
-        else:
-            return globals()[fun]
-    else:
-        return getattr(ctx, fun)
+# Helper
 
 
-def mk_cnode(
-    name,
-    function=None,
-    index_arg: str = None,
-    properties=None,
-    pass_ctx=False,
-    pass_self=False,
-):
-    def __init__(self, parent):
-        print(f"create {name}")
-        self._parent = parent
-        self._function = function
-        self._name = name
-        self._index_arg = index_arg
-        self._index_val = None
-
-    def __call__(self, *args, **kwargs):
-        ctx = self._parent()
-
-        if self._function:
-            f = get_function(self._function, ctx)
-            kwargs = kwargs.copy()
-
-            if self._index_arg:
-                args = (self._index_val,) + args
-
-            if pass_ctx:
-                args = (ctx,) + args
-
-            if pass_self:
-                args = (self,) + args
-
-            # print(
-            #    f"call {ctx}.{self._name} = {self._function} {args} {kwargs} {self._index_val}"  # noqa
-            # )
-            ctx = f(*args, **kwargs)
-
-        return ctx
-
-    def __str__(self):
-        return self._name
-
-    def __getitem__(self, key):
-        print(f"set item: {key}")
-        self._index_val = key
-        return self
-
-    attributes = [
-        "_parent",
-        "_module",
-        "_function",
-        "_name",
-        "_index_arg",
-        "_index_val",
-    ]
-
-    methods = {"__init__": __init__, "__call__": __call__, "__str__": __str__}
-
-    if index_arg:
-        methods["__getitem__"] = __getitem__
-
-    properties = properties or {}
-
-    return mk_c(name, attributes, properties, methods, help=f"Help for {name}")
-
-
-specs = {
-    "fun": {"$call": "urllib.parse.quote", "$args": ["string"]},
-    "rest": {
-        "$call": "load_db",
-        "a": {
-            "$index": "id_a",
-            "list": {"$call": "list"},
-            "get": {"$call": "get", "$args": ["id_a"]},
-            # "__getitem__": {"$call": "__getitem__"},
-            "b": {
-                "$index": "id_b",
-                "list": {"$call": "list"},
-                "get": {"$call": "get"},
-            },
-        },
-    },
-}
-
-
-def do_nothing():
-    pass
-
-
-def get_node_children(obj):
-    node = {}
-    children = {}
-    for k, v in obj.items():
-        target = node if k.startswith("$") else children
-        target[k] = v
-    return node, children
-
-
-def parse(obj):
-    def rec_parse_api_l(obj, name):
-        node, children = get_node_children(obj)
-        call = node.get("$call")
-        index = node.get("$index")
-        print(f"init {'node' if children else 'leaf'} {name}: call={call} idx={index}")
-        if not children:
-            return mk_cnode(name=name, function=call, index_arg=index)
-        else:  # node with children
-            props = {}
-            for cname, child in children.items():
-                props[cname] = rec_parse_api_l(child, cname)
-            return mk_cnode(name=name, function=call, index_arg=index, properties=props)
-
-    def api_l_main():
-        print("ROOT")
-
-    def urljoin(self, parent, *args):
-        parts = [x for x in [parent, self._name] if x]
-        res = "/".join(parts + [str(x) for x in args])
-        print(res)
-        return res
-
-    def urlreq(self, parent, *args, **kwargs):
-        res = "/".join([parent, self._name])
-        return {"url": res}
-
-    def rec_parse_api_r(obj, name):
-        node, children = get_node_children(obj)
-        index = node.get("$index")
-        if not children:
-            return mk_cnode(
-                name=name,
-                function=urlreq,
-                index_arg=index,
-                pass_ctx=True,
-                pass_self=True,
+def create_fun_cls(fun, *arg_names, **kwarg_names):
+    return create_node_class(
+        {
+            fun: dict(
+                use_ctx=True,
+                fun=fun,
+                arg_names=arg_names,
+                kwarg_names=kwarg_names,
             )
-        else:  # node with children
-            props = {}
-            for cname, child in children.items():
-                props[cname] = rec_parse_api_r(child, cname)
-            return mk_cnode(
-                name=name,
-                function=urljoin,
-                index_arg=index,
-                properties=props,
-                pass_ctx=True,
-                pass_self=True,
-            )
-
-    def api_r_main():
-        return None
-
-    return SimpleNamespace(
-        api_l=rec_parse_api_l(obj, "MAIN")(api_l_main),
-        api_r=rec_parse_api_r(obj, "http://example.com")(api_r_main),
+        }
     )
 
-"""
-main = parse(specs)
 
-api = main.api_r
-
-res = api.fun("&")
-print(res)
-
-res = api.rest.a.list()
-print(res)
-
-res = main.api_l.rest.a.get(1).b
-print(type(res))
-
-res = main.api_l.rest.a[1].b[2]
+def create_attr_ext_fun_call(fun, *arg_names, **kwarg_names):
+    return create_attr(
+        result_cls=create_fun_cls("__call__", *arg_names, **kwarg_names),
+        use_ctx=False,
+        fun=fun,
+    )
 
 
-
-api = main.api_l
-
-res = api.fun("&")
-assert res == "%26"
-
-res = api.rest.a.list()
-assert len(res) == 2
-
-res = api.rest.a.get(1).b.get(2)
-assert res.data == "a1b2"
-
-res = api.rest.a[1].b[2]
-assert res.data == "a1b2"
-
-res = api.rest.a.get(1)
-assert res.data == "a1"
-
-res = api.rest.a[1]
-assert res.data == "a1"
-
-"""
+def create_attr_ext_index_obj(fun, key_arg):
+    return create_attr(
+        result_cls=create_fun_cls("__getitem__", key_arg),
+        use_ctx=False,
+        fun=fun,
+    )
 
 
-db = load_db()
+def create_attr_index_obj(key_arg):
+    return create_attr(result_cls=create_fun_cls("__getitem__", key_arg), use_ctx=True)
 
 
-# GET|DEL /db/1/b/1
-# NOTE: 
-# db[1].b.get(1)
-# db[1].b.__getitem__(1)
-res = db[1].b[1]  # GET
-print(res.data)
-
-# db[1].b.delete(1)
-# db[1].b.__delitem__(1)
-del db[1].b[1] # DELETE
+# TEST
 
 
-def fg(n):
-    return globals()[n]
-
-def fa(n):
-    def f(o, *args, **kwargs):        
-        return getattr(o, n)(*args, **kwargs)
-    return f
-
-def fga():
-    def f(o, *args, **kwargs):        
-        getattr(o, *args, **kwargs)
-    return f
-
-def fj(*args):
-    return '/'.join(str(a) for a in args)
-
-f0 = fg("load_db")
-fgi = fa("__getitem__")
-fga = getattr
+def test_fun_sum(x):
+    return x + 1
 
 
-def dl(u, b):
-    return ("REQ", b+u)
-
-def d0():
-    return "a"
-
-db = f0()
-a1 = fgi(db, 1)
-b = fga(a1, "b")
-b1 = fgi(b, 1)
-
-print(b1)
-
-db = d0()
-a1 = fj(db, 1)
-b = fj(a1, "b")
-b1 = fj(b, 1)
-
-b1 = dl(b1, "http://example.com/")
-
-print(b1)
+assert get_function_from_str("test_fun_sum")(1) == 2
+assert get_function_from_str("urllib.parse.quote")("&") == "%26"
 
 
-"""
-the python object chain (a.b.c[1].d())
-creates a nested object hierarchy, 
-each elements has
-    * the parent
-    * some args+kwargs
+ns = SimpleNamespace(x=9)
 
-after the last element is constructed, call the thing in reverse,
-each parent result being the first argument (ctx)
+# function
+setts = dict(use_ctx=True, fun="__call__", arg_names=["string"])
+f = create_callback(**setts, args=["&"])
+assert f(quote) == "%26"
 
-the chain represents a path in the tree of possible calls
-"""
+# use a root callback
+o = create_node_class({"n1": setts})(lambda _ctx: quote)
+assert o.n1("&") == "%26"
 
-def nothing(*args, **kwargs):
-    print(f"nothing {args}, {kwargs}")
-    pass
+# prop
 
-class CallChainNode:
-    def __init__(self, parent:"CallChainNode"=None, fun=None, args=None, kwargs=None, index_arg=None):
-        self.parent = parent
-        self.fun = fun or nothing
-        self.args = args or ()
-        self.kwargs = kwargs or {}
-        self.index_arg = index_arg
-    
-    
-    def __call__(self):
-        args = self.args
-        if self.parent:
-            ctx = self.parent()
-            args = (ctx,) + args
+setts = dict(use_ctx=True, fun="x")
+p = create_callback(setts)(ns)
+assert p.x == 9
 
-        print(f'call {args}, {self.kwargs}')
-        return self.fun(*args, **self.kwargs)
-    
-        
-    def __getitem__(self, index):
-        if not self.index_arg:
-            raise Exception("No index")
-        self.kwargs[self.index_arg] = index
+o = create_node_class({"x": setts})(lambda _ctx: ns)
+assert o.x == 9
+
+# external func
+
+setts = dict(use_ctx=False, fun="urllib.parse.quote")
+f = create_callback(**setts)(None)
+assert f("&") == "%26"
+o = create_node_class({"q": setts})()
+assert o.q("&") == "%26"
+
+# dummy
+
+setts = dict(use_ctx=False, fun=None)
+d = create_callback(**setts)("A")
+assert d == "A"
+o = create_node_class({"a": setts})()
+assert o.a is None
 
 
-x = None
-for y in [(f0,), (fgi, (1,)), (fga, ("b",)), (fgi, (1,))]:
-    x = CallChainNode(x, *y)
-res = x()
+CLS = create_node_class({"f": create_attr_ext_fun_call("urllib.parse.quote", "string")})
+o = CLS()
+assert o.f("&") == "%26"
 
-print(res)
+DATA = {"a": 1}
 
-
-class CallTreeNode:
-    
-    def __init__(self, parent:CallChainNode=None):
-        self.parent=parent
-    
-def create_property(fun=None, args=None, kwargs=None, index_arg=False):
-    def prop(self)-> CallChainNode:
-        fun = None
-        args = None
-        kwargs = None
-        index_arg = False
-        return CallChainNode(parent=self.parent, fun=fun, args=args, kwargs=kwargs, index_arg=index_arg)
-    return property(prop)
+CLS = create_node_class({"f": create_attr_ext_index_obj("DATA", "key")})
+o = CLS()
+assert o.f["a"] == 1
 
 
-setattr(CallTreeNode, "branch_b", create_property())
-
-root = CallTreeNode()
-
-
-res = root.branch_b()
-print(res)
+CLS = create_node_class({"f": create_attr_index_obj("key")})
+o = CLS(lambda _: DATA)
+assert o.f["a"] == 1
