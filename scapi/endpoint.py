@@ -1,13 +1,12 @@
 #!/usr/bin/env python3
 from collections import OrderedDict
 
-from .build_utils import add_into_tree, iter_tree, underscore_props
-from .classes import Parameters, Source, Target
+from .classes import Source
 from .code import IndentedCodeBlock
+from .utils import add_into_tree, iter_tree
 
 
 class Endpoint:
-
     _tree = OrderedDict()
     _instances = []
 
@@ -57,6 +56,10 @@ class Endpoint:
         else:
             path = self.path[:]
         return path
+
+    @property
+    def url(self):
+        return "/".join(self.path_url)
 
     @classmethod
     def get_signature_parameters(cls, instance):

@@ -1,29 +1,19 @@
-Documentation
-=============
+API
+===
 
-
-.. contents:: Content
-    :depth: 1
-
-
-python api
-==========
-
-.. autoclass:: api.api
+.. automodule:: api
    :members:
    :undoc-members:
 
 
-python wsgi
-===========
+WEB
+===
 
 .. automodule:: wsgi
-   :members:
-   :undoc-members:
 
-command line interface (CLI)
-=============================
+CLI
+===
 
-.. click:: cli:main
-   :prog: cli.py
+.. click:: main:main
+   :prog: COMMAND
    :nested: full

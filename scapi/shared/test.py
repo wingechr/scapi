@@ -6,8 +6,8 @@ import time
 import unittest
 from functools import partial
 
+import api as api_local
 import utils
-from api import api as api_local
 from client import api as api_remote
 from wsgi import application
 
@@ -29,7 +29,7 @@ class TestTemplate(unittest.TestCase):
         server_thread.start()
         time.sleep(1)  # give server a little time to startup
         cls.api_remote = api_remote("http://localhost:%d" % port)
-        cls.api_local = api_local()
+        cls.api_local = api_local
         cls.schema = utils.load_schema()
 
     @classmethod

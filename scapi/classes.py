@@ -65,6 +65,10 @@ class Type:
         return "None"
 
     @property
+    def url_type(self):
+        return self.type
+
+    @property
     def python_type_validation(self):
         d = {}
         if self.multiple:
